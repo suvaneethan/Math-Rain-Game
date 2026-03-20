@@ -2,36 +2,53 @@
 
 public class FallDown : MonoBehaviour
 {
-    public float speed = 150f;
+    public float baseSpeed = 150f;
 
     RectTransform rt;
-    AnswerBox box;
     bool isHandled = false;
+
+    float currentSpeed;
+
     void Start()
     {
         rt = GetComponent<RectTransform>();
-        box = GetComponent<AnswerBox>();
+        currentSpeed = baseSpeed;
     }
 
     void Update()
     {
-        if (GameManager.Instance != null && GameManager.Instance.isGamePaused)
+        if (GameManager.Instance == null || GameManager.Instance.isGamePaused)
             return;
 
-        float dynamicSpeed = speed;
+        // 🎯 TARGET SPEED
+        float targetSpeed = baseSpeed + GameManager.Instance.GetScore() * 10f;
+        targetSpeed = Mathf.Clamp(targetSpeed, 150f, 600f);
 
-        if (GameManager.Instance != null)
+        // 🔥 SMOOTH SPEED
+        currentSpeed = Mathf.Lerp(currentSpeed, targetSpeed, Time.deltaTime * 2f);
+
+        // 🎯 NORMALIZED VALUE (0 → 1)
+        float t = Mathf.InverseLerp(200f, 600f, currentSpeed);
+
+        // 🔥 UI ZOOM EFFECT
+        if (GameManager.Instance.gameRoot != null)
         {
-            dynamicSpeed += GameManager.Instance.GetScore() * 10f;
-            dynamicSpeed = Mathf.Clamp(dynamicSpeed, 150f, 600f);
+            float targetScale = Mathf.Lerp(1f, 1.08f, t); // max zoom 8%
+
+            Vector3 currentScale = GameManager.Instance.gameRoot.localScale;
+            Vector3 newScale = Vector3.Lerp(currentScale, Vector3.one * targetScale, Time.deltaTime * 4f);
+
+            GameManager.Instance.gameRoot.localScale = newScale;
         }
+      
 
-        rt.anchoredPosition -= new Vector2(0, dynamicSpeed * Time.deltaTime);
+#if UNITY_EDITOR
+        Debug.Log("Speed: " + currentSpeed);
+#endif
+
+        // 🎯 MOVE
+        rt.anchoredPosition -= new Vector2(0, currentSpeed * Time.deltaTime);
     }
-
-
-
-
 
     void OnTriggerEnter2D(Collider2D other)
     {
@@ -41,12 +58,15 @@ public class FallDown : MonoBehaviour
         {
             isHandled = true;
 
-            // 🔥 ONLY if not already handled
             if (!GameManager.Instance.lifeHandled)
             {
                 GameManager.Instance.lifeHandled = true;
                 GameManager.Instance.MissCorrectAnswer();
-                FindObjectOfType<AnswerSpawner>().ClearAndSpawnNew();
+
+                if (GameManager.Instance.spawner != null)
+                {
+                    GameManager.Instance.spawner.ClearAndSpawnNew();
+                }
             }
 
             Destroy(gameObject);

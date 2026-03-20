@@ -11,6 +11,10 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
     public bool isGamePaused = false;
+
+    public RectTransform gameRoot;
+
+
     [Header("UI")]
     public GameOverUI gameOverUI;
     public GameObject revivePanel;
