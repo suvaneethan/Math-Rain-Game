@@ -13,7 +13,8 @@ public class GameManager : MonoBehaviour
     public bool isGamePaused = false;
 
     public RectTransform gameRoot;
-
+    public TextMeshProUGUI coinText;
+    bool rewardGiven = false;
 
     [Header("UI")]
     public GameOverUI gameOverUI;
@@ -22,7 +23,8 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI questionText;
     public TextMeshProUGUI scoreText;
     public TextMeshProUGUI comboText;
-    public TextMeshProUGUI levelText;
+    public TextMeshProUGUI levelPopupText;
+    public AudioClip levelUpSound;
     public TextMeshProUGUI lifeText;
     public TextMeshProUGUI bestScoreText;
 
@@ -64,7 +66,8 @@ public class GameManager : MonoBehaviour
         bestScore = PlayerPrefs.GetInt("BestScore", 0);
         currentLives = maxLives;
         UpdateUI();
-
+        EconomyManager.Instance.ResetRunCoins();
+        UpdateCoinUI();
         // 🔥 Ensure ad starts loading early
         if (AdManager.Instance != null)
         {
@@ -139,6 +142,12 @@ public class GameManager : MonoBehaviour
 
             score += points;
 
+            int baseCoins = points * 2;
+            int comboBonus = combo;
+            int coinReward = baseCoins + comboBonus ;
+            EconomyManager.Instance.AddRunCoins(coinReward);
+            UpdateCoinUI();
+
             audioSource.pitch = Random.Range(0.9f, 1.1f);
             audioSource.PlayOneShot(correctSound);
 
@@ -176,11 +185,21 @@ public class GameManager : MonoBehaviour
     {
         return score;
     }
+
+    void UpdateCoinUI()
+    {
+       
+            if (coinText != null && EconomyManager.Instance != null)
+            {
+                coinText.text = "Coins: " + EconomyManager.Instance.GetRunCoins();
+            }
+        
+    }
     void UpdateUI()
     {
         scoreText.text = "Score: " + score;
-        lifeText.text = "❤️ " + currentLives;
-        levelText.text = "LEVEL " + currentLevel;
+        lifeText.text = "Lives: " + currentLives;
+        levelPopupText.text = "Level: " + currentLevel;
 
         if (combo <= 1)
             comboText.text = "";
@@ -376,6 +395,10 @@ public class GameManager : MonoBehaviour
 
     void GameOver()
     {
+        if (rewardGiven) return;
+
+        rewardGiven = true;
+
         isGameOver = true;
 
         StopAllCoroutines();
@@ -386,7 +409,15 @@ public class GameManager : MonoBehaviour
 
         spawner.enabled = false;
 
-        gameOverUI.Show(score, bestScore);
+        int runCoins = EconomyManager.Instance.GetRunCoins();
+
+        // 💰 convert run → total
+        EconomyManager.Instance.AddCoins(runCoins);
+
+        // 🎯 show UI
+        gameOverUI.Show(score, bestScore, runCoins);
+
+        UpdateCoinUI();
     }
 
     public void RestartGame()
@@ -405,15 +436,74 @@ public class GameManager : MonoBehaviour
 
     void CheckLevelUp()
     {
+        int oldLevel = currentLevel;
+
         if (score < 10) currentLevel = 1;
         else if (score < 25) currentLevel = 2;
         else if (score < 50) currentLevel = 3;
         else currentLevel = 4;
-    }
 
+        // 🔥 Trigger popup only when level changes
+        if (currentLevel > oldLevel)
+        {
+            StartCoroutine(ShowLevelPopup(currentLevel));
+        }
+    }
+    IEnumerator ShowLevelPopup(int level)
+    {
+        if (levelPopupText == null) yield break;
+
+        levelPopupText.gameObject.SetActive(true);
+        levelPopupText.text = "LEVEL " + level;
+
+        RectTransform rt = levelPopupText.GetComponent<RectTransform>();
+        rt.localScale = Vector3.zero;
+
+        // 🔊 sound
+        if (audioSource != null && levelUpSound != null)
+        {
+            audioSource.PlayOneShot(levelUpSound);
+        }
+
+        // 🔥 POP IN
+        float t = 0;
+        while (t < 0.3f)
+        {
+            t += Time.deltaTime;
+            rt.localScale = Vector3.Lerp(Vector3.zero, Vector3.one * 1.3f, t / 0.3f);
+            yield return null;
+        }
+
+        // 🔥 SETTLE
+        t = 0;
+        while (t < 0.15f)
+        {
+            t += Time.deltaTime;
+            rt.localScale = Vector3.Lerp(Vector3.one * 1.3f, Vector3.one, t / 0.15f);
+            yield return null;
+        }
+
+        // ⏳ stay visible
+        yield return new WaitForSeconds(0.8f);
+
+        // 🔥 FADE OUT
+        CanvasGroup cg = levelPopupText.GetComponent<CanvasGroup>();
+        if (cg == null) cg = levelPopupText.gameObject.AddComponent<CanvasGroup>();
+
+        t = 0;
+        while (t < 0.3f)
+        {
+            t += Time.deltaTime;
+            cg.alpha = 1 - (t / 0.3f);
+            yield return null;
+        }
+
+        cg.alpha = 1;
+        levelPopupText.gameObject.SetActive(false);
+    }
     IEnumerator NextRoundDelay()
     {
-        yield return new WaitForSeconds(0.2f);
+        yield return new WaitForSecondsRealtime(0.2f);
 
         if (isGameOver || isGamePaused) yield break;
 

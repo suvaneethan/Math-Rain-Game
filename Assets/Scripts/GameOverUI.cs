@@ -8,18 +8,30 @@ public class GameOverUI : MonoBehaviour
 {
     public CanvasGroup panel;
 
-    public RectTransform gameOverText;
+    [Header("Main Elements")]
+    public RectTransform container; // 🔥 whole card (assign bg parent)
+    public TextMeshProUGUI titleText;
 
+    [Header("Stats")]
     public TextMeshProUGUI scoreText;
     public TextMeshProUGUI bestScoreText;
+    public TextMeshProUGUI coinRewardText;
+    public TextMeshProUGUI totalCoinText;
+
+    [Header("Extras")]
     public TextMeshProUGUI newBestText;
 
+    [Header("Buttons")]
     public RectTransform restartButton;
+    public RectTransform homeButton;
 
-    public float fadeTime = 0.4f;
-
+    [Header("Audio")]
     public AudioSource audioSource;
     public AudioClip tickSound;
+
+    public float fadeTime = 0.3f;
+
+    bool isShowing = false;
 
     void Awake()
     {
@@ -27,15 +39,24 @@ public class GameOverUI : MonoBehaviour
         panel.interactable = false;
         panel.blocksRaycasts = false;
 
+        container.localScale = Vector3.zero;
+
         restartButton.localScale = Vector3.zero;
+        homeButton.localScale = Vector3.zero;
 
         if (newBestText != null)
             newBestText.gameObject.SetActive(false);
+
+        coinRewardText.text = "🟡 +0";
+        totalCoinText.text = "💰 0";
     }
 
-    public void Show(int finalScore, int bestScore)
+    public void Show(int finalScore, int bestScore, int coinsEarned)
     {
-        StartCoroutine(ShowRoutine(finalScore, bestScore));
+        if (isShowing) return;
+        isShowing = true;
+
+        StartCoroutine(ShowRoutine(finalScore, bestScore, coinsEarned));
     }
 
     public void GoHome()
@@ -43,11 +64,12 @@ public class GameOverUI : MonoBehaviour
         Time.timeScale = 1f;
         SceneManager.LoadScene("HomeScene");
     }
-    IEnumerator ShowRoutine(int finalScore, int bestScore)
+
+    IEnumerator ShowRoutine(int finalScore, int bestScore, int coinsEarned)
     {
         panel.gameObject.SetActive(true);
 
-        // 🔥 Fade in
+        // 🔥 Fade background
         float t = 0;
         while (t < fadeTime)
         {
@@ -56,55 +78,58 @@ public class GameOverUI : MonoBehaviour
             yield return null;
         }
 
-        panel.alpha = 1;
+        // 🔥 Card scale pop
+        yield return StartCoroutine(Pop(container, 0.25f));
 
-        // 💥 GAME OVER drop
-        yield return StartCoroutine(DropBounce(gameOverText));
+        // 🔥 Title small bounce
+        yield return StartCoroutine(PopText(titleText));
 
-        // 🔢 Show scores
-        yield return StartCoroutine(ShowScores(finalScore, bestScore));
+        // 🔢 Score
+        yield return StartCoroutine(AnimateScore(finalScore, bestScore));
 
-        // 🟡 NEW BEST
+        // 💰 Coins
+        yield return StartCoroutine(AnimateCoins(coinsEarned));
+
+        // 🟡 New best
         if (finalScore >= bestScore)
-        {
             yield return StartCoroutine(NewBestEffect());
-        }
 
-        // 🔘 Button
-        yield return StartCoroutine(PopButton(restartButton));
+        // 🔘 Buttons
+        yield return StartCoroutine(Pop(restartButton, 0.2f));
+        yield return StartCoroutine(Pop(homeButton, 0.2f));
+
+        // 💰 Total coins
+        totalCoinText.text = "TotalCoins " + EconomyManager.Instance.GetCoins();
 
         panel.interactable = true;
         panel.blocksRaycasts = true;
     }
 
-    IEnumerator ShowScores(int finalScore, int bestScore)
-    {
-        float duration = 1.2f;
-        float time = 0;
+    // ================= ANIMATIONS =================
 
-        int lastPlayed = -1;
+    IEnumerator AnimateScore(int finalScore, int bestScore)
+    {
+        float duration = 1f;
+        float time = 0;
+        int last = -1;
 
         while (time < duration)
         {
             time += Time.unscaledDeltaTime;
-
             float t = time / duration;
-            t = 1 - Mathf.Pow(1 - t, 3); // ease out
+            t = 1 - Mathf.Pow(1 - t, 3);
 
-            int currentScore = Mathf.RoundToInt(Mathf.Lerp(0, finalScore, t));
+            int current = Mathf.RoundToInt(Mathf.Lerp(0, finalScore, t));
 
-            // ✅ CLEAN NUMBER (no 000 format)
-            scoreText.text = "Score: " + currentScore.ToString();
-            bestScoreText.text = "Best: " + bestScore.ToString();
+            scoreText.text = "Score: " + current;
+            bestScoreText.text = "Best: " + bestScore;
 
-            // 🔊 tick sound only when number changes
-            if (currentScore != lastPlayed)
+            if (current != last)
             {
-                lastPlayed = currentScore;
-
-                if (audioSource != null && tickSound != null)
+                last = current;
+                if (audioSource && tickSound)
                 {
-                    audioSource.pitch = Random.Range(0.9f, 1.1f);
+                    audioSource.pitch = Random.Range(0.95f, 1.1f);
                     audioSource.PlayOneShot(tickSound);
                 }
             }
@@ -112,8 +137,30 @@ public class GameOverUI : MonoBehaviour
             yield return null;
         }
 
-        // ✅ final value
-        scoreText.text = "Score: " + finalScore.ToString();
+        scoreText.text = "Score: " + finalScore;
+    }
+
+    IEnumerator AnimateCoins(int coins)
+    {
+        yield return new WaitForSecondsRealtime(0.2f);
+
+        int display = 0;
+
+        while (display < coins)
+        {
+            int step = Mathf.Max(1, coins / 20);
+            display += step;
+            display = Mathf.Min(display, coins);
+
+            coinRewardText.text = "Coins +" + display;
+
+            // 🔥 small punch
+            coinRewardText.transform.localScale = Vector3.one * 1.2f;
+            yield return new WaitForSecondsRealtime(0.02f);
+            coinRewardText.transform.localScale = Vector3.one;
+        }
+
+        coinRewardText.text = "Coins +" + coins;
     }
 
     IEnumerator NewBestEffect()
@@ -123,95 +170,41 @@ public class GameOverUI : MonoBehaviour
         RectTransform rt = newBestText.GetComponent<RectTransform>();
         rt.localScale = Vector3.zero;
 
-        Color gold = new Color(1f, 0.84f, 0f);
-        Color white = Color.white;
-
-        float time = 0;
-
-        while (time < 0.3f)
-        {
-            time += Time.unscaledDeltaTime;
-            rt.localScale = Vector3.Lerp(Vector3.zero, Vector3.one * 1.4f, time / 0.3f);
-            yield return null;
-        }
-
-        // 🔥 glow pulse
-        for (int i = 0; i < 3; i++)
-        {
-            float t = 0;
-
-            while (t < 0.2f)
-            {
-                t += Time.unscaledDeltaTime;
-
-                float pulse = Mathf.PingPong(t * 5f, 1f);
-
-                newBestText.color = Color.Lerp(white, gold, pulse);
-                rt.localScale = Vector3.one * (1 + pulse * 0.2f);
-
-                yield return null;
-            }
-        }
-
-        newBestText.color = gold;
-        rt.localScale = Vector3.one;
-    }
-
-    IEnumerator DropBounce(RectTransform rect)
-    {
-        Vector2 start = new Vector2(0, 800);
-        Vector2 end = Vector2.zero;
-
-        rect.anchoredPosition = start;
-
         float t = 0;
-
-        while (t < 0.4f)
+        while (t < 0.3f)
         {
             t += Time.unscaledDeltaTime;
-            float ease = 1 - Mathf.Pow(1 - t / 0.4f, 3);
-            rect.anchoredPosition = Vector2.Lerp(start, end, ease);
-            yield return null;
-        }
-
-        // bounce
-        t = 0;
-        Vector2 up = end + new Vector2(0, 40);
-
-        while (t < 0.15f)
-        {
-            t += Time.unscaledDeltaTime;
-            rect.anchoredPosition = Vector2.Lerp(end, up, t / 0.15f);
-            yield return null;
-        }
-
-        t = 0;
-        while (t < 0.15f)
-        {
-            t += Time.unscaledDeltaTime;
-            rect.anchoredPosition = Vector2.Lerp(up, end, t / 0.15f);
+            rt.localScale = Vector3.Lerp(Vector3.zero, Vector3.one * 1.2f, t / 0.3f);
             yield return null;
         }
     }
 
-    IEnumerator PopButton(RectTransform btn)
+    IEnumerator Pop(RectTransform target, float duration)
     {
-        btn.localScale = Vector3.zero;
+        target.localScale = Vector3.zero;
 
         float t = 0;
+        while (t < duration)
+        {
+            t += Time.unscaledDeltaTime;
+            target.localScale = Vector3.Lerp(Vector3.zero, Vector3.one * 1.1f, t / duration);
+            yield return null;
+        }
 
+        target.localScale = Vector3.one;
+    }
+
+    IEnumerator PopText(TextMeshProUGUI txt)
+    {
+        RectTransform rt = txt.GetComponent<RectTransform>();
+
+        rt.localScale = Vector3.zero;
+
+        float t = 0;
         while (t < 0.2f)
         {
             t += Time.unscaledDeltaTime;
-            btn.localScale = Vector3.Lerp(Vector3.zero, Vector3.one * 1.2f, t / 0.2f);
-            yield return null;
-        }
-
-        t = 0;
-        while (t < 0.1f)
-        {
-            t += Time.unscaledDeltaTime;
-            btn.localScale = Vector3.Lerp(Vector3.one * 1.2f, Vector3.one, t / 0.1f);
+            rt.localScale = Vector3.Lerp(Vector3.zero, Vector3.one, t / 0.2f);
             yield return null;
         }
     }
