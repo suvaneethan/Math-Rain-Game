@@ -1,7 +1,4 @@
-﻿
-
-
-using UnityEngine;
+﻿using UnityEngine;
 using TMPro;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -19,6 +16,7 @@ public class GameManager : MonoBehaviour
     [Header("UI")]
     public GameOverUI gameOverUI;
     public GameObject revivePanel;
+    public TextMeshProUGUI loadingAdText;
 
     public TextMeshProUGUI questionText;
     public TextMeshProUGUI scoreText;
@@ -56,6 +54,12 @@ public class GameManager : MonoBehaviour
 
     bool reviveUsed = false;
     private bool isAdProcessing = false;
+
+    public bool isReviving = false;
+    private bool pendingRevive = false; // 🔥 ADD THIS FLAG
+
+
+
     void Awake()
     {
         Instance = this;
@@ -90,6 +94,13 @@ public class GameManager : MonoBehaviour
     void Update()
     {
         UpdateCoinUI();
+
+        // 🔥 PROCESS REVIVE SAFELY ON THE MAIN THREAD
+        if (pendingRevive)
+        {
+            pendingRevive = false;
+            RevivePlayer();
+        }
     }
     // ================= QUESTION =================
 
@@ -260,6 +271,8 @@ public class GameManager : MonoBehaviour
 
     public void MissCorrectAnswer()
     {
+        if (isReviving) return; // 🔥 ADD THIS LINE
+
         currentLives--;
 
         audioSource.PlayOneShot(wrongSound);
@@ -280,20 +293,15 @@ public class GameManager : MonoBehaviour
                 isGamePaused = true;
                 Time.timeScale = 0f;
 
-                // 🔥 STOP FLASH COMPLETELY
                 StopCoroutine(nameof(DamageFlashRoutine));
 
-                // Reset flash instantly
                 Color c = damageFlash.color;
                 c.a = 0;
                 damageFlash.color = c;
 
-                // STOP GAME
                 spawner.enabled = false;
                 spawner.StopAllCoroutines();
                 spawner.ClearAll();
-
-                StopAllCoroutines();
             }
             else
             {
@@ -304,103 +312,129 @@ public class GameManager : MonoBehaviour
 
     void RevivePlayer()
     {
-        Debug.Log("RevivePlayer CALLED");
+        Debug.Log("✅ RevivePlayer CALLED");
+
+        isReviving = true;
 
         reviveUsed = true;
 
-        // ✅ SAFE UI CLOSE
-        if (revivePanel != null)
-        {
-            revivePanel.SetActive(false);
-        }
-        else
-        {
-            Debug.LogError("revivePanel is NULL!");
-        }
+        revivePanel.SetActive(false);
 
-        // ✅ RESUME GAME
         isGamePaused = false;
+        isGameOver = false;
         Time.timeScale = 1f;
 
-        // ✅ RESET LIFE
         currentLives = 1;
+        lifeHandled = false;
         UpdateUI();
 
-        // ✅ SAFE SPAWNER RESTART
+        // 🔥 FORCE RESET GAME STATE
         if (spawner != null)
         {
             spawner.enabled = true;
-            spawner.StopAllCoroutines();
-            spawner.SpawnSet();
+            spawner.ClearAll();
+
+            // 🔥 DELAYED SPAWN (IMPORTANT)
+            StartCoroutine(ForceSpawnAfterRevive());
         }
-        else
-        {
-            Debug.LogError("Spawner is NULL!");
-        }
+
+        StartCoroutine(ReviveProtection());
     }
+    // ================= BUTTONS =================
+
     // ================= BUTTONS =================
 
     public void OnWatchAdRevive()
     {
         if (isAdProcessing) return;
-
         isAdProcessing = true;
 
-        // 🔥 IMMEDIATE UI HIDE (important for mobile)
-        if (revivePanel != null)
-            revivePanel.SetActive(false);
-
-        AdManager.Instance.ShowRewardedAd(() =>
-        {
-            isAdProcessing = false;
-            StartCoroutine(DelayedRevive());
-        });
-
-        // 🔥 SAFETY FALLBACK (mobile fix)
-        StartCoroutine(ForceCloseRevivePanel());
+        
+            // 🔥 If not ready, start the waiting animation!
+            StartCoroutine(WaitAndShowAdRoutine());
+        
     }
-    IEnumerator ForceCloseRevivePanel()
+
+    IEnumerator WaitAndShowAdRoutine()
     {
-        yield return new WaitForSecondsRealtime(2f);
-
-        if (isGamePaused && revivePanel.activeSelf)
+        // Turn on the loading text
+        if (loadingAdText != null)
         {
-            Debug.Log("⚠️ Force closing revive panel (mobile fix)");
-
-            RevivePlayer();
+            loadingAdText.gameObject.SetActive(true);
+            loadingAdText.text = "Loading Ad...";
         }
-    }
-    IEnumerator DelayedRevive()
-    {
-        yield return new WaitForSecondsRealtime(0.2f);
-        RevivePlayer();
-    }
 
-    IEnumerator WaitAndRetryAd()
-    {
-        Debug.Log("Waiting for ad...");
+        float waitTime = 0f;
+        float maxWaitTime = 4f; // ⏳ Wait up to 4 seconds for the internet
 
-        float waitTime = 0;
-
-        while (!AdManager.Instance.IsAdReady && waitTime < 3f)
+        // Loop until ad is ready OR time runs out
+        while (waitTime < maxWaitTime)
         {
+            if (AdManager.Instance.IsAdReady)
+                break;
+
             waitTime += Time.unscaledDeltaTime;
-            yield return null;
+
+            // 🔥 Calculate remaining time and round up (4, 3, 2, 1)
+            float timeRemaining = maxWaitTime - waitTime;
+            int secondsLeft = Mathf.CeilToInt(timeRemaining);
+
+            // 🎨 Animate the dots (...)
+            int dots = Mathf.FloorToInt(waitTime * 3) % 4;
+
+            // 🔥 Update text with the timer and the animated dots
+            if (loadingAdText != null)
+            {
+                // This will look like: "Loading Ad (3s)..."
+                loadingAdText.text = $"Loading Ad ({secondsLeft}s)" + new string('.', dots);
+            }
+
+            yield return null; // Wait for next frame
         }
 
+        // Hide the text when done waiting
+        if (loadingAdText != null)
+            loadingAdText.gameObject.SetActive(false);
+
+        // Did the ad finally load?
         if (AdManager.Instance.IsAdReady)
         {
-            Debug.Log("Ad loaded → showing now");
-            OnWatchAdRevive();
+            Debug.Log("Ad finished loading! Showing now.");
+            ShowAdSafely();
         }
         else
         {
-            Debug.Log("Still no ad → fallback revive");
-
-            // 🔥 OPTION 2: Give free revive (best UX)
+            // ❌ Internet is too slow or no ads available. Give free revive.
+            Debug.Log("Ad timeout -> Giving Free Revive Fallback");
+            isAdProcessing = false;
             RevivePlayer();
         }
     }
+
+    void ShowAdSafely()
+    {
+        // Hide the panel before the ad pops up
+        if (revivePanel != null)
+            revivePanel.SetActive(false);
+
+        bool started = AdManager.Instance.ShowRewardedAd(() =>
+        {
+            Debug.Log("Ad Reward Callback → Revive");
+            isAdProcessing = false;
+            pendingRevive = true;
+        });
+
+        if (!started)
+        {
+            Debug.Log("❌ Ad failed → fallback revive");
+
+            isAdProcessing = false;
+            pendingRevive = true; // 🔥 ALWAYS revive
+        }
+    }
+
+
+
     public void OnNoThanks()
     {
         Debug.Log("No Thanks Clicked");
@@ -531,7 +565,19 @@ public class GameManager : MonoBehaviour
 
         spawner.ClearAndSpawnNew();
     }
+    IEnumerator ReviveProtection()
+    {
+        yield return new WaitForSecondsRealtime(0.5f);
+        isReviving = false;
+    }
+    IEnumerator ForceSpawnAfterRevive()
+    {
+        yield return new WaitForSecondsRealtime(0.05f);
 
+        Debug.Log("🔥 FORCE SPAWN AFTER REVIVE");
+
+        spawner.SpawnSet();
+    }
     IEnumerator ComboSlowMotion()
     {
         Time.timeScale = 0.6f;

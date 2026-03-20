@@ -66,7 +66,7 @@ public class FallDown : MonoBehaviour
         if (!canHit) return; // prevent instant spawn hit
         if (GameManager.Instance == null) return;
         if (GameManager.Instance.isGamePaused) return;
-
+        if (GameManager.Instance.isReviving) return;
         if (other.CompareTag("Danger"))
         {
             isHandled = true;

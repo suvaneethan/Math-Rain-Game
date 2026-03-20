@@ -21,13 +21,12 @@ public class AnswerSpawner : MonoBehaviour
 
     public void SpawnSet()
     {
-        if (GameManager.Instance.isGameOver || GameManager.Instance.isGamePaused) return;
+        if (GameManager.Instance.isGameOver && !GameManager.Instance.isReviving) return;
 
         ClearAll();
 
         GameManager.Instance.GenerateQuestion();
 
-        // 🔥 GET SELECTED CHARACTER PREFAB
         GameObject selectedPrefab = CharacterManager.Instance.GetSelectedCharacter().prefab;
 
         for (int i = 0; i < 3; i++)
@@ -46,7 +45,7 @@ public class AnswerSpawner : MonoBehaviour
 
     public void ClearAndSpawnNew()
     {
-        if (GameManager.Instance.isGameOver || GameManager.Instance.isGamePaused) return;
+        if (GameManager.Instance.isGameOver && !GameManager.Instance.isReviving) return;
 
         StopAllCoroutines(); // 🔥 IMPORTANT
         StartCoroutine(SpawnRoutine());
@@ -54,7 +53,7 @@ public class AnswerSpawner : MonoBehaviour
 
     IEnumerator SpawnRoutine()
     {
-        if (GameManager.Instance.isGameOver || GameManager.Instance.isGamePaused) yield break;
+        if (GameManager.Instance.isGameOver) yield break;
 
         foreach (Transform child in parent)
         {
@@ -72,10 +71,10 @@ public class AnswerSpawner : MonoBehaviour
 
     public void ClearAll()
     {
-        StopAllCoroutines(); // 🔥 EXTRA SAFETY
-
         foreach (Transform child in parent)
         {
+            // 🔥 INSTANTLY turn it off so it doesn't trigger collisions while waiting to be destroyed
+            child.gameObject.SetActive(false);
             Destroy(child.gameObject);
         }
     }

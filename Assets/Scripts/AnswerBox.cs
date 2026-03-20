@@ -43,7 +43,7 @@ public class AnswerBox : MonoBehaviour
         if (col != null)
             col.enabled = false;
 
-        yield return new WaitForSeconds(0.2f); // 🔥 safe delay
+        yield return new WaitForSecondsRealtime(0.2f); // ✅ FIXED
 
         if (col != null)
             col.enabled = true;
