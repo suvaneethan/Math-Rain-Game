@@ -81,17 +81,7 @@ public class AdManager : MonoBehaviour
 
         ad.OnAdFullScreenContentClosed += () =>
         {
-            StartCoroutine(SetAudioPause(false));
-
-            if (rewardEarned && onRewardCallback != null)
-            {
-                StartCoroutine(InvokeOnMainThread());
-            }
-
-            rewardEarned = false;
-            OnAdClosed?.Invoke();
-
-            LoadRewardedAd();
+            StartCoroutine(HandleAdClosed());
         };
 
         ad.OnAdFullScreenContentFailed += (AdError error) =>
@@ -102,7 +92,26 @@ public class AdManager : MonoBehaviour
             LoadRewardedAd();
         };
     }
+    IEnumerator HandleAdClosed()
+    {
+        yield return null; // 🔥 switch to main thread
 
+        AudioListener.pause = false;
+
+        if (rewardEarned && onRewardCallback != null)
+        {
+            Action callback = onRewardCallback;
+            onRewardCallback = null;
+
+            callback.Invoke(); // ✅ SAFE
+        }
+
+        rewardEarned = false;
+
+        OnAdClosed?.Invoke(); // ✅ now safe
+
+        LoadRewardedAd();
+    }
     public void ShowRewardedAd(Action onReward)
     {
         if (rewardedAd != null && rewardedAd.CanShowAd())
@@ -112,9 +121,9 @@ public class AdManager : MonoBehaviour
 
             rewardedAd.Show((Reward reward) =>
             {
-                Debug.Log("Reward Earned");
-
+               
                 rewardEarned = true; // ✅ mark only
+                Debug.Log("Reward Callback Triggered");
             });
         }
         else

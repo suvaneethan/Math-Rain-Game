@@ -3,13 +3,19 @@ using System.Collections;
 
 public class AnswerSpawner : MonoBehaviour
 {
-    public GameObject answerPrefab;
+   // public GameObject answerPrefab;
     public Transform parent;
 
     private float[] lanes = { -300f, 0f, 300f };
 
     void Start()
     {
+        StartCoroutine(DelayedStart());
+    }
+
+    IEnumerator DelayedStart()
+    {
+        yield return new WaitForSeconds(0.2f); // 🔥 small delay
         SpawnSet();
     }
 
@@ -21,9 +27,12 @@ public class AnswerSpawner : MonoBehaviour
 
         GameManager.Instance.GenerateQuestion();
 
+        // 🔥 GET SELECTED CHARACTER PREFAB
+        GameObject selectedPrefab = CharacterManager.Instance.GetSelectedCharacter().prefab;
+
         for (int i = 0; i < 3; i++)
         {
-            GameObject obj = Instantiate(answerPrefab, parent);
+            GameObject obj = Instantiate(selectedPrefab, parent);
 
             obj.GetComponent<AnswerBox>().Setup(i);
 

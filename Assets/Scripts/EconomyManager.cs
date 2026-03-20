@@ -4,27 +4,25 @@ public class EconomyManager : MonoBehaviour
 {
     public static EconomyManager Instance;
 
-    int coins;      // 💰 total coins (saved)
-    int runCoins;   // 🟡 coins for current run (not saved)
+    int coins;
+    int runCoins;
 
     void Awake()
     {
-        if (Instance == null)
-            Instance = this;
-        else
+        // 🔥 SAFE SINGLETON
+        if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
-            return;
+            return; // 🔥 VERY IMPORTANT
         }
 
-        // Optional: keep across scenes
+        Instance = this;
         DontDestroyOnLoad(gameObject);
 
         coins = PlayerPrefs.GetInt("Coins", 0);
-        runCoins = 0;
-    }
 
-    // ================= TOTAL COINS =================
+        Debug.Log("EconomyManager Init → Coins: " + coins);
+    }
 
     public void AddCoins(int amount)
     {
@@ -43,17 +41,9 @@ public class EconomyManager : MonoBehaviour
         return true;
     }
 
-    public int GetCoins()
-    {
-        return coins;
-    }
+    public int GetCoins() => coins;
 
-    // ================= RUN COINS =================
-
-    public int GetRunCoins()
-    {
-        return runCoins;
-    }
+    public int GetRunCoins() => runCoins;
 
     public void AddRunCoins(int amount)
     {

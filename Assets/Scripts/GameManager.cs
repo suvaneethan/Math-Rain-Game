@@ -63,6 +63,14 @@ public class GameManager : MonoBehaviour
 
     void Start()
     {
+        // 🔥 RESET GAME STATE
+        isGameOver = false;
+        isGamePaused = false;
+        lifeHandled = false;
+        isAnswered = false;
+        reviveUsed = false;
+        rewardGiven = false;
+
         bestScore = PlayerPrefs.GetInt("BestScore", 0);
         currentLives = maxLives;
         UpdateUI();
@@ -73,8 +81,16 @@ public class GameManager : MonoBehaviour
         {
             StartCoroutine(CheckAdReadyRoutine());
         }
+        if (spawner != null)
+        {
+            spawner.ClearAll(); // 🔥 remove any leftover objects
+        }
     }
 
+    void Update()
+    {
+        UpdateCoinUI();
+    }
     // ================= QUESTION =================
 
     public void GenerateQuestion()
@@ -188,18 +204,16 @@ public class GameManager : MonoBehaviour
 
     void UpdateCoinUI()
     {
-       
-            if (coinText != null && EconomyManager.Instance != null)
-            {
-                coinText.text = "Coins: " + EconomyManager.Instance.GetRunCoins();
-            }
-        
+        if (coinText != null && EconomyManager.Instance != null)
+        {
+            coinText.text = "Coins: " + EconomyManager.Instance.GetRunCoins();
+        }
     }
     void UpdateUI()
     {
         scoreText.text = "Score: " + score;
         lifeText.text = "Lives: " + currentLives;
-        levelPopupText.text = "Level: " + currentLevel;
+       
 
         if (combo <= 1)
             comboText.text = "";
@@ -330,24 +344,32 @@ public class GameManager : MonoBehaviour
     {
         if (isAdProcessing) return;
 
-        if (!AdManager.Instance.IsAdReady)
-        {
-            Debug.Log("Ad not ready → fallback");
-
-            // 🔥 OPTION 1: Wait and retry
-            StartCoroutine(WaitAndRetryAd());
-            return;
-        }
-
         isAdProcessing = true;
+
+        // 🔥 IMMEDIATE UI HIDE (important for mobile)
+        if (revivePanel != null)
+            revivePanel.SetActive(false);
 
         AdManager.Instance.ShowRewardedAd(() =>
         {
             isAdProcessing = false;
             StartCoroutine(DelayedRevive());
         });
-    }
 
+        // 🔥 SAFETY FALLBACK (mobile fix)
+        StartCoroutine(ForceCloseRevivePanel());
+    }
+    IEnumerator ForceCloseRevivePanel()
+    {
+        yield return new WaitForSecondsRealtime(2f);
+
+        if (isGamePaused && revivePanel.activeSelf)
+        {
+            Debug.Log("⚠️ Force closing revive panel (mobile fix)");
+
+            RevivePlayer();
+        }
+    }
     IEnumerator DelayedRevive()
     {
         yield return new WaitForSecondsRealtime(0.2f);
@@ -454,7 +476,7 @@ public class GameManager : MonoBehaviour
         if (levelPopupText == null) yield break;
 
         levelPopupText.gameObject.SetActive(true);
-        levelPopupText.text = "LEVEL " + level;
+        levelPopupText.text = "Level: " + level;
 
         RectTransform rt = levelPopupText.GetComponent<RectTransform>();
         rt.localScale = Vector3.zero;
@@ -469,7 +491,7 @@ public class GameManager : MonoBehaviour
         float t = 0;
         while (t < 0.3f)
         {
-            t += Time.deltaTime;
+            t += Time.unscaledDeltaTime;
             rt.localScale = Vector3.Lerp(Vector3.zero, Vector3.one * 1.3f, t / 0.3f);
             yield return null;
         }
@@ -478,7 +500,7 @@ public class GameManager : MonoBehaviour
         t = 0;
         while (t < 0.15f)
         {
-            t += Time.deltaTime;
+            t += Time.unscaledDeltaTime;
             rt.localScale = Vector3.Lerp(Vector3.one * 1.3f, Vector3.one, t / 0.15f);
             yield return null;
         }
@@ -493,7 +515,7 @@ public class GameManager : MonoBehaviour
         t = 0;
         while (t < 0.3f)
         {
-            t += Time.deltaTime;
+            t += Time.unscaledDeltaTime;
             cg.alpha = 1 - (t / 0.3f);
             yield return null;
         }

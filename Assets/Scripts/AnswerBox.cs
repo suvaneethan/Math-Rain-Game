@@ -30,6 +30,25 @@ public class AnswerBox : MonoBehaviour
         GetComponent<Button>().onClick.AddListener(OnClick);
     }
 
+    void OnEnable()
+    {
+        // 🔥 disable collider at spawn
+        StartCoroutine(EnableColliderDelay());
+    }
+
+    IEnumerator EnableColliderDelay()
+    {
+        Collider2D col = GetComponent<Collider2D>();
+
+        if (col != null)
+            col.enabled = false;
+
+        yield return new WaitForSeconds(0.2f); // 🔥 safe delay
+
+        if (col != null)
+            col.enabled = true;
+    }
+
     void OnClick()
     {
         if (isClicked) return;

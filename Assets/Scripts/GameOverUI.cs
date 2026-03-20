@@ -47,8 +47,8 @@ public class GameOverUI : MonoBehaviour
         if (newBestText != null)
             newBestText.gameObject.SetActive(false);
 
-        coinRewardText.text = "🟡 +0";
-        totalCoinText.text = "💰 0";
+        coinRewardText.text = "";
+        totalCoinText.text = "";
     }
 
     public void Show(int finalScore, int bestScore, int coinsEarned)
@@ -99,7 +99,7 @@ public class GameOverUI : MonoBehaviour
         yield return StartCoroutine(Pop(homeButton, 0.2f));
 
         // 💰 Total coins
-        totalCoinText.text = "TotalCoins " + EconomyManager.Instance.GetCoins();
+        totalCoinText.text = "TotalCoins: " + EconomyManager.Instance.GetCoins();
 
         panel.interactable = true;
         panel.blocksRaycasts = true;
@@ -152,7 +152,7 @@ public class GameOverUI : MonoBehaviour
             display += step;
             display = Mathf.Min(display, coins);
 
-            coinRewardText.text = "Coins +" + display;
+            coinRewardText.text = "Coins: " + display;
 
             // 🔥 small punch
             coinRewardText.transform.localScale = Vector3.one * 1.2f;
@@ -160,7 +160,7 @@ public class GameOverUI : MonoBehaviour
             coinRewardText.transform.localScale = Vector3.one;
         }
 
-        coinRewardText.text = "Coins +" + coins;
+        coinRewardText.text = "Coins: " + coins;
     }
 
     IEnumerator NewBestEffect()
