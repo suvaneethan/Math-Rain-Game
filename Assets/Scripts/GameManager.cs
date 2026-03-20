@@ -60,6 +60,12 @@ public class GameManager : MonoBehaviour
         bestScore = PlayerPrefs.GetInt("BestScore", 0);
         currentLives = maxLives;
         UpdateUI();
+
+        // 🔥 Ensure ad starts loading early
+        if (AdManager.Instance != null)
+        {
+            StartCoroutine(CheckAdReadyRoutine());
+        }
     }
 
     // ================= QUESTION =================
@@ -301,30 +307,54 @@ public class GameManager : MonoBehaviour
     {
         if (isAdProcessing) return;
 
-        if (AdManager.Instance == null)
-        {
-            Debug.LogError("AdManager NOT FOUND!");
-            return;
-        }
-
         if (!AdManager.Instance.IsAdReady)
         {
-            Debug.Log("Ad not ready yet...");
+            Debug.Log("Ad not ready → fallback");
+
+            // 🔥 OPTION 1: Wait and retry
+            StartCoroutine(WaitAndRetryAd());
             return;
         }
 
         isAdProcessing = true;
 
-        // 🔥 DO NOT revive here directly
         AdManager.Instance.ShowRewardedAd(() =>
         {
-            Debug.Log("Reward confirmed");
-
             isAdProcessing = false;
-
-            // ✅ revive AFTER ad fully closed
-            RevivePlayer();
+            StartCoroutine(DelayedRevive());
         });
+    }
+
+    IEnumerator DelayedRevive()
+    {
+        yield return new WaitForSecondsRealtime(0.2f);
+        RevivePlayer();
+    }
+
+    IEnumerator WaitAndRetryAd()
+    {
+        Debug.Log("Waiting for ad...");
+
+        float waitTime = 0;
+
+        while (!AdManager.Instance.IsAdReady && waitTime < 3f)
+        {
+            waitTime += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        if (AdManager.Instance.IsAdReady)
+        {
+            Debug.Log("Ad loaded → showing now");
+            OnWatchAdRevive();
+        }
+        else
+        {
+            Debug.Log("Still no ad → fallback revive");
+
+            // 🔥 OPTION 2: Give free revive (best UX)
+            RevivePlayer();
+        }
     }
     public void OnNoThanks()
     {
@@ -391,5 +421,18 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 0.6f;
         yield return new WaitForSecondsRealtime(0.1f);
         Time.timeScale = 1f;
+    }
+
+    IEnumerator CheckAdReadyRoutine()
+    {
+        float timer = 0;
+
+        while (!AdManager.Instance.IsAdReady && timer < 5f)
+        {
+            timer += Time.unscaledDeltaTime;
+            yield return null;
+        }
+
+        Debug.Log("Ad Ready Status: " + AdManager.Instance.IsAdReady);
     }
 }

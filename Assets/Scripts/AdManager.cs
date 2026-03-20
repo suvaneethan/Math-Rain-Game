@@ -76,24 +76,19 @@ public class AdManager : MonoBehaviour
     {
         ad.OnAdFullScreenContentOpened += () =>
         {
-            Debug.Log("Ad Opened");
-            AudioListener.pause = true;
+            StartCoroutine(SetAudioPause(true));
         };
 
         ad.OnAdFullScreenContentClosed += () =>
         {
-            Debug.Log("Ad Closed");
+            StartCoroutine(SetAudioPause(false));
 
-            AudioListener.pause = false;
-
-            // 🔥 ONLY HERE we trigger revive
             if (rewardEarned && onRewardCallback != null)
             {
                 StartCoroutine(InvokeOnMainThread());
             }
 
             rewardEarned = false;
-
             OnAdClosed?.Invoke();
 
             LoadRewardedAd();
@@ -139,5 +134,10 @@ public class AdManager : MonoBehaviour
 
             callback.Invoke();
         }
+    }
+    IEnumerator SetAudioPause(bool state)
+    {
+        yield return null; // move to main thread
+        AudioListener.pause = state;
     }
 }
