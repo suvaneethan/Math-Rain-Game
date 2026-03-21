@@ -28,6 +28,8 @@ public class GameOverUI : MonoBehaviour
     [Header("Audio")]
     public AudioSource audioSource;
     public AudioClip tickSound;
+    public AudioClip slamSound; // 💡 AAA Touch: Add a heavy thud sound for when the panel drops
+    public AudioClip cashSound; // 💡 AAA Touch: Add a cha-ching for the coins
 
     public float fadeTime = 0.3f;
 
@@ -40,9 +42,9 @@ public class GameOverUI : MonoBehaviour
         panel.blocksRaycasts = false;
 
         container.localScale = Vector3.zero;
-
         restartButton.localScale = Vector3.zero;
         homeButton.localScale = Vector3.zero;
+        titleText.rectTransform.localScale = Vector3.zero;
 
         if (newBestText != null)
             newBestText.gameObject.SetActive(false);
@@ -69,57 +71,69 @@ public class GameOverUI : MonoBehaviour
     {
         panel.gameObject.SetActive(true);
 
-        // 🔥 Fade background
-        float t = 0;
-        while (t < fadeTime)
+        // 1. FAST BACKGROUND FADE
+        StartCoroutine(FadeCanvasGroup(panel, 1f, fadeTime));
+
+        // 2. AAA SLAM: Container overshoots and settles
+        yield return new WaitForSecondsRealtime(0.1f);
+        if (audioSource && slamSound) audioSource.PlayOneShot(slamSound, 0.8f);
+        StartCoroutine(ScaleEaseOutBack(container, Vector3.one, 0.4f));
+
+        // 3. STAGGERED ELEMENTS: Don't wait for the container to finish!
+        yield return new WaitForSecondsRealtime(0.15f);
+        StartCoroutine(ScaleEaseOutBack(titleText.rectTransform, Vector3.one, 0.3f));
+
+        // 4. DYNAMIC TALLYING
+        yield return new WaitForSecondsRealtime(0.1f);
+        StartCoroutine(AnimateScore(finalScore, bestScore));
+
+        // Offset the coins slightly so they don't count at the exact same time
+        yield return new WaitForSecondsRealtime(0.2f);
+        StartCoroutine(AnimateCoins(coinsEarned));
+
+        // 5. NEW BEST BURST
+        if (finalScore >= bestScore && finalScore > 0)
         {
-            t += Time.unscaledDeltaTime;
-            panel.alpha = t / fadeTime;
-            yield return null;
+            yield return new WaitForSecondsRealtime(0.5f); // Wait for score to tally a bit
+            StartCoroutine(NewBestEffect());
         }
 
-        // 🔥 Card scale pop
-        yield return StartCoroutine(Pop(container, 0.25f));
+        // 6. STAGGERED BUTTON POPS
+        yield return new WaitForSecondsRealtime(0.3f);
+        StartCoroutine(ScaleEaseOutBack(restartButton, Vector3.one, 0.3f));
+        yield return new WaitForSecondsRealtime(0.08f); // 💡 Notice the tiny stagger delay
+        StartCoroutine(ScaleEaseOutBack(homeButton, Vector3.one, 0.3f));
 
-        // 🔥 Title small bounce
-        yield return StartCoroutine(PopText(titleText));
+        // 7. FINALIZE
+        totalCoinText.text = "Total Coins: " + EconomyManager.Instance.GetCoins();
 
-        // 🔢 Score
-        yield return StartCoroutine(AnimateScore(finalScore, bestScore));
-
-        // 💰 Coins
-        yield return StartCoroutine(AnimateCoins(coinsEarned));
-
-        // 🟡 New best
-        if (finalScore >= bestScore)
-            yield return StartCoroutine(NewBestEffect());
-
-        // 🔘 Buttons
-        yield return StartCoroutine(Pop(restartButton, 0.2f));
-        yield return StartCoroutine(Pop(homeButton, 0.2f));
-
-        // 💰 Total coins
-        totalCoinText.text = "TotalCoins: " + EconomyManager.Instance.GetCoins();
+        // Add a continuous floating idle animation to the container
+        StartCoroutine(IdleFloat(container));
 
         panel.interactable = true;
         panel.blocksRaycasts = true;
     }
 
-    // ================= ANIMATIONS =================
+    // ================= AAA ANIMATIONS =================
 
     IEnumerator AnimateScore(int finalScore, int bestScore)
     {
-        float duration = 1f;
+        float duration = 1.2f;
         float time = 0;
         int last = -1;
+
+        // Reset pitch
+        if (audioSource) audioSource.pitch = 1f;
 
         while (time < duration)
         {
             time += Time.unscaledDeltaTime;
-            float t = time / duration;
-            t = 1 - Mathf.Pow(1 - t, 3);
 
-            int current = Mathf.RoundToInt(Mathf.Lerp(0, finalScore, t));
+            // 🔥 EaseOutExpo curve: Starts counting fast, slows down smoothly at the end
+            float t = time / duration;
+            float ease = (t == 1) ? 1 : 1 - Mathf.Pow(2, -10 * t);
+
+            int current = Mathf.RoundToInt(Mathf.Lerp(0, finalScore, ease));
 
             scoreText.text = "Score: " + current;
             bestScoreText.text = "Best: " + bestScore;
@@ -129,82 +143,128 @@ public class GameOverUI : MonoBehaviour
                 last = current;
                 if (audioSource && tickSound)
                 {
-                    audioSource.pitch = Random.Range(0.95f, 1.1f);
-                    audioSource.PlayOneShot(tickSound);
+                    // 💡 AAA Touch: Pitch rises as the score gets closer to the end!
+                    audioSource.pitch = Mathf.Lerp(0.9f, 1.5f, ease);
+                    audioSource.PlayOneShot(tickSound, 0.4f);
                 }
+
+                // Micro-punch text on every tick
+                scoreText.transform.localScale = Vector3.one * 1.05f;
+            }
+            else
+            {
+                // Settle back down quickly between ticks
+                scoreText.transform.localScale = Vector3.Lerp(scoreText.transform.localScale, Vector3.one, Time.unscaledDeltaTime * 15f);
             }
 
             yield return null;
         }
 
+        scoreText.transform.localScale = Vector3.one;
         scoreText.text = "Score: " + finalScore;
     }
 
     IEnumerator AnimateCoins(int coins)
     {
-        yield return new WaitForSecondsRealtime(0.2f);
+        float duration = 0.8f;
+        float time = 0;
+        int last = -1;
 
-        int display = 0;
+        if (audioSource && cashSound) audioSource.PlayOneShot(cashSound, 0.6f);
 
-        while (display < coins)
+        while (time < duration)
         {
-            int step = Mathf.Max(1, coins / 20);
-            display += step;
-            display = Mathf.Min(display, coins);
+            time += Time.unscaledDeltaTime;
+            float t = time / duration;
+            float ease = (t == 1) ? 1 : 1 - Mathf.Pow(2, -10 * t); // Smooth slow down
 
-            coinRewardText.text = "Coins: " + display;
+            int display = Mathf.RoundToInt(Mathf.Lerp(0, coins, ease));
 
-            // 🔥 small punch
-            coinRewardText.transform.localScale = Vector3.one * 1.2f;
-            yield return new WaitForSecondsRealtime(0.02f);
-            coinRewardText.transform.localScale = Vector3.one;
+            if (display != last)
+            {
+                last = display;
+                coinRewardText.text = "Coins: " + display;
+                coinRewardText.transform.localScale = Vector3.one * 1.15f;
+            }
+            else
+            {
+                coinRewardText.transform.localScale = Vector3.Lerp(coinRewardText.transform.localScale, Vector3.one, Time.unscaledDeltaTime * 10f);
+            }
+
+            yield return null;
         }
 
+        coinRewardText.transform.localScale = Vector3.one;
         coinRewardText.text = "Coins: " + coins;
     }
 
     IEnumerator NewBestEffect()
     {
         newBestText.gameObject.SetActive(true);
-
         RectTransform rt = newBestText.GetComponent<RectTransform>();
-        rt.localScale = Vector3.zero;
 
-        float t = 0;
-        while (t < 0.3f)
+        // Pop in with extreme overshoot
+        yield return StartCoroutine(ScaleEaseOutBack(rt, Vector3.one, 0.4f, 2.5f));
+
+        // Then pulse continuously
+        while (true)
         {
-            t += Time.unscaledDeltaTime;
-            rt.localScale = Vector3.Lerp(Vector3.zero, Vector3.one * 1.2f, t / 0.3f);
+            float scale = 1f + Mathf.Sin(Time.unscaledTime * 6f) * 0.08f; // Breathing effect
+            rt.localScale = Vector3.one * scale;
+
+            // 💡 AAA Touch: subtle rainbow color shift for the "New Best"
+            float hue = Mathf.Repeat(Time.unscaledTime * 0.5f, 1f);
+            newBestText.color = Color.HSVToRGB(hue, 0.8f, 1f);
+
             yield return null;
         }
     }
 
-    IEnumerator Pop(RectTransform target, float duration)
+    // ================= CORE MATH & JUICE UTILITIES =================
+
+    IEnumerator ScaleEaseOutBack(RectTransform target, Vector3 targetScale, float duration, float overshootMultiplier = 1.70158f)
     {
         target.localScale = Vector3.zero;
+        float time = 0;
 
-        float t = 0;
-        while (t < duration)
+        while (time < duration)
         {
-            t += Time.unscaledDeltaTime;
-            target.localScale = Vector3.Lerp(Vector3.zero, Vector3.one * 1.1f, t / duration);
+            time += Time.unscaledDeltaTime;
+            float t = time / duration;
+
+            // 🔥 AAA Math: The "Back" easing formula causes it to go slightly past the target and spring back
+            float c3 = overshootMultiplier + 1f;
+            float ease = 1f + c3 * Mathf.Pow(t - 1, 3) + overshootMultiplier * Mathf.Pow(t - 1, 2);
+
+            target.localScale = Vector3.LerpUnclamped(Vector3.zero, targetScale, ease);
             yield return null;
         }
 
-        target.localScale = Vector3.one;
+        target.localScale = targetScale;
     }
 
-    IEnumerator PopText(TextMeshProUGUI txt)
+    IEnumerator FadeCanvasGroup(CanvasGroup cg, float targetAlpha, float duration)
     {
-        RectTransform rt = txt.GetComponent<RectTransform>();
-
-        rt.localScale = Vector3.zero;
-
-        float t = 0;
-        while (t < 0.2f)
+        float startAlpha = cg.alpha;
+        float time = 0;
+        while (time < duration)
         {
-            t += Time.unscaledDeltaTime;
-            rt.localScale = Vector3.Lerp(Vector3.zero, Vector3.one, t / 0.2f);
+            time += Time.unscaledDeltaTime;
+            // Smooth step for nicer fading
+            cg.alpha = Mathf.SmoothStep(startAlpha, targetAlpha, time / duration);
+            yield return null;
+        }
+        cg.alpha = targetAlpha;
+    }
+
+    IEnumerator IdleFloat(RectTransform target)
+    {
+        Vector2 startPos = target.anchoredPosition;
+        while (true)
+        {
+            // Subtle slow vertical floating
+            float yOffset = Mathf.Sin(Time.unscaledTime * 2f) * 5f;
+            target.anchoredPosition = startPos + new Vector2(0, yOffset);
             yield return null;
         }
     }

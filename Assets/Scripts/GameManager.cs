@@ -23,7 +23,7 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI comboText;
     public TextMeshProUGUI levelPopupText;
     public AudioClip levelUpSound;
-    public TextMeshProUGUI lifeText;
+   // public TextMeshProUGUI lifeText;
     public TextMeshProUGUI bestScoreText;
 
     public Image damageFlash;
@@ -59,6 +59,7 @@ public class GameManager : MonoBehaviour
     int runScore = 0;
     float runTime = 0f;
 
+    public HeartUI heartUI;
     void Awake()
     {
         Instance = this;
@@ -79,6 +80,9 @@ public class GameManager : MonoBehaviour
         UpdateUI();
         EconomyManager.Instance.ResetRunCoins();
         UpdateCoinUI();
+
+        heartUI.Setup(maxLives);
+
         // 🔥 Ensure ad starts loading early
         if (AdManager.Instance != null)
         {
@@ -268,7 +272,7 @@ public class GameManager : MonoBehaviour
     void UpdateUI()
     {
         scoreText.text = "Score: " + score;
-        lifeText.text = "Lives: " + currentLives;
+      //  lifeText.text = "Lives: " + currentLives;
        
 
         if (combo <= 1)
@@ -322,6 +326,7 @@ public class GameManager : MonoBehaviour
         if (isReviving) return;
 
         currentLives--;
+        heartUI.LoseLife(currentLives);
 
         AudioManager.Instance.PlaySFX(AudioManager.Instance.wrong);
 
@@ -334,11 +339,7 @@ public class GameManager : MonoBehaviour
         ResetCombo();
         UpdateUI();
 
-        if (!spawnRequested)
-        {
-            spawnRequested = true;
-            spawner.ClearAndSpawnNew();
-        }
+        spawner.ClearAndSpawnNew(); // 🔥 ALWAYS CALL
 
         StartCoroutine(ResetMissLock()); // 🔥 UNLOCK AFTER FRAME
 
@@ -384,6 +385,7 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 1f;
 
         currentLives = 1;
+        heartUI.Setup(currentLives);
         lifeHandled = false;
         UpdateUI();
 
