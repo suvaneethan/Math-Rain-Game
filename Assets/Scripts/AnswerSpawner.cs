@@ -3,7 +3,6 @@ using System.Collections;
 
 public class AnswerSpawner : MonoBehaviour
 {
-   // public GameObject answerPrefab;
     public Transform parent;
 
     private float[] lanes = { -300f, 0f, 300f };
@@ -15,13 +14,27 @@ public class AnswerSpawner : MonoBehaviour
 
     IEnumerator DelayedStart()
     {
-        yield return new WaitForSeconds(0.2f); // 🔥 small delay
+        yield return new WaitForSecondsRealtime(0.2f);
         SpawnSet();
     }
 
+    // ================= MAIN SPAWN =================
+
     public void SpawnSet()
     {
-        if (GameManager.Instance.isGameOver && !GameManager.Instance.isReviving) return;
+        if (GameManager.Instance.isSpawningNow) return; // 🔥 HARD LOCK
+        GameManager.Instance.isSpawningNow = true;
+
+        if (GameManager.Instance == null) return;
+
+        GameManager.Instance.lifeHandled = false;
+        GameManager.Instance.isAnswered = false;
+
+        if (GameManager.Instance.isGameOver && !GameManager.Instance.isReviving)
+        {
+            GameManager.Instance.isSpawningNow = false;
+            return;
+        }
 
         ClearAll();
 
@@ -41,13 +54,26 @@ public class AnswerSpawner : MonoBehaviour
 
             obj.AddComponent<AnswerPop>();
         }
+
+        StartCoroutine(UnlockSpawn());
+        GameManager.Instance.spawnRequested = false; // 🔥 IMPORTANT
     }
+    IEnumerator UnlockSpawn()
+    {
+        yield return new WaitForSecondsRealtime(0.2f);
+        GameManager.Instance.isSpawningNow = false;
+    }
+    // ================= SAFE RESPAWN =================
 
     public void ClearAndSpawnNew()
     {
-        if (GameManager.Instance.isGameOver && !GameManager.Instance.isReviving) return;
+        if (GameManager.Instance == null) return;
 
-        StopAllCoroutines(); // 🔥 IMPORTANT
+        if (GameManager.Instance.isGameOver && !GameManager.Instance.isReviving)
+            return;
+
+        if (GameManager.Instance.isSpawningNow) return; // 🔥 ADD THIS
+
         StartCoroutine(SpawnRoutine());
     }
 
@@ -55,27 +81,31 @@ public class AnswerSpawner : MonoBehaviour
     {
         if (GameManager.Instance.isGameOver) yield break;
 
+        // 🔥 Add crunch effect before removing
         foreach (Transform child in parent)
         {
             if (!child.GetComponent<AnswerCrunch>())
                 child.gameObject.AddComponent<AnswerCrunch>();
         }
 
-        // 🔥 FIXED (works even when paused)
+        // 🔥 Always realtime (ignore pause issues)
         yield return new WaitForSecondsRealtime(0.25f);
 
-        if (GameManager.Instance.isGameOver || GameManager.Instance.isGamePaused) yield break;
+        if (GameManager.Instance.isGameOver) yield break;
 
         SpawnSet();
     }
+
+
+    // ================= CLEAR =================
 
     public void ClearAll()
     {
         foreach (Transform child in parent)
         {
-            // 🔥 INSTANTLY turn it off so it doesn't trigger collisions while waiting to be destroyed
-            child.gameObject.SetActive(false);
-            Destroy(child.gameObject);
+            
+            // 🔥 small delay avoids frame conflict
+            Destroy(child.gameObject, 0.05f);
         }
     }
 }

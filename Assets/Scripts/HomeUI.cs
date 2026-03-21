@@ -15,8 +15,12 @@ public class HomeUI : MonoBehaviour
     void OnEnable()
     {
         Invoke(nameof(UpdateCoins), 0.1f);
-    }
 
+        var profile = FindObjectOfType<ProfileUI>();
+        if (profile != null)
+            profile.UpdateUI();
+    }
+  
     public void UpdateCoins()
     {
         if (EconomyManager.Instance == null)

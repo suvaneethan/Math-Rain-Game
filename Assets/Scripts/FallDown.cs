@@ -62,28 +62,28 @@ public class FallDown : MonoBehaviour
     {
         if (isHandled) return;
 
-        // 🔥 CRITICAL SAFETY CHECKS
-        if (!canHit) return; // prevent instant spawn hit
+        if (!canHit) return;
         if (GameManager.Instance == null) return;
         if (GameManager.Instance.isGamePaused) return;
         if (GameManager.Instance.isReviving) return;
+
         if (other.CompareTag("Danger"))
         {
             isHandled = true;
+
+            Debug.Log("🔥 HIT DETECTED");
 
             if (!GameManager.Instance.lifeHandled)
             {
                 GameManager.Instance.lifeHandled = true;
 
+                // ✅ ONLY THIS
                 GameManager.Instance.MissCorrectAnswer();
-
-                if (GameManager.Instance.spawner != null)
-                {
-                    GameManager.Instance.spawner.ClearAndSpawnNew();
-                }
             }
 
             Destroy(gameObject);
         }
     }
+
+
 }

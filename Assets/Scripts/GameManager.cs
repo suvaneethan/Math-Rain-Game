@@ -28,8 +28,9 @@ public class GameManager : MonoBehaviour
 
     public Image damageFlash;
 
-  
-
+    public bool isSpawningNow = false;
+   public bool spawnRequested = false;
+    bool isProcessingMiss = false;
     [Header("Gameplay")]
     public AnswerSpawner spawner; // 🔥 assign in inspector
     public ScreenShake screenShake;
@@ -53,11 +54,10 @@ public class GameManager : MonoBehaviour
     private bool isAdProcessing = false;
 
     public bool isReviving = false;
-    private bool pendingRevive = false; // 🔥 ADD THIS FLAG
+    private bool pendingRevive = false;
 
-    
-
-  
+    int runScore = 0;
+    float runTime = 0f;
 
     void Awake()
     {
@@ -94,12 +94,19 @@ public class GameManager : MonoBehaviour
     {
         UpdateCoinUI();
 
+        if (!isGamePaused && !isGameOver)
+        {
+            runTime += Time.deltaTime;
+        }
+
         // 🔥 PROCESS REVIVE SAFELY ON THE MAIN THREAD
         if (pendingRevive)
         {
             pendingRevive = false;
             RevivePlayer();
         }
+
+
     }
     // ================= QUESTION =================
 
@@ -207,7 +214,7 @@ public class GameManager : MonoBehaviour
             else if (combo >= 3) points = 2;
 
             score += points;
-
+            runScore = score; 
             int baseCoins = points * 2;
             int comboBonus = combo;
             int coinReward = baseCoins + comboBonus ;
@@ -232,7 +239,7 @@ public class GameManager : MonoBehaviour
 
                 ShowDamageFlash();
                 MissCorrectAnswer();
-                spawner.ClearAndSpawnNew();
+                
             }
         }
 
@@ -309,7 +316,10 @@ public class GameManager : MonoBehaviour
 
     public void MissCorrectAnswer()
     {
-        if (isReviving) return; // 🔥 ADD THIS LINE
+        if (isProcessingMiss) return; // 🔥 HARD BLOCK (CRITICAL)
+        isProcessingMiss = true;
+
+        if (isReviving) return;
 
         currentLives--;
 
@@ -324,6 +334,14 @@ public class GameManager : MonoBehaviour
         ResetCombo();
         UpdateUI();
 
+        if (!spawnRequested)
+        {
+            spawnRequested = true;
+            spawner.ClearAndSpawnNew();
+        }
+
+        StartCoroutine(ResetMissLock()); // 🔥 UNLOCK AFTER FRAME
+
         if (currentLives <= 0)
         {
             if (!reviveUsed)
@@ -332,12 +350,6 @@ public class GameManager : MonoBehaviour
 
                 isGamePaused = true;
                 Time.timeScale = 0f;
-
-                StopCoroutine(nameof(DamageFlashRoutine));
-
-                Color c = damageFlash.color;
-                c.a = 0;
-                damageFlash.color = c;
 
                 spawner.enabled = false;
                 spawner.StopAllCoroutines();
@@ -349,7 +361,14 @@ public class GameManager : MonoBehaviour
             }
         }
     }
+    IEnumerator ResetMissLock()
+    {
+        yield return new WaitForSecondsRealtime(0.1f);
 
+        isProcessingMiss = false;
+        spawnRequested = false; // 🔥 also reset here
+    }
+   
     void RevivePlayer()
     {
         Debug.Log("✅ RevivePlayer CALLED");
@@ -491,6 +510,7 @@ public class GameManager : MonoBehaviour
 
     void GameOver()
     {
+        EndRun();
         if (rewardGiven) return;
 
         rewardGiven = true;
@@ -655,5 +675,22 @@ public class GameManager : MonoBehaviour
             target.localScale = Vector3.Lerp(original * 1.2f, original, t / 0.1f);
             yield return null;
         }
+    }
+
+    void EndRun()
+    {
+        var data = PlayerDataManager.Instance;
+
+        data.lastScore = runScore;
+        data.totalPlayTime += runTime;
+
+        if (runScore > data.highScore)
+            data.highScore = runScore;
+
+        data.AddXP(runScore); // 🔥 new system
+
+        data.SaveData();
+
+        Debug.Log("✅ EndRun Saved | Score: " + runScore);
     }
 }

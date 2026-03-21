@@ -1,12 +1,23 @@
 # ninja log v5
+1	9345	7956851541842601	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	320addbd60dff457
 176	2021	7956851468833834	FramePacing/CMakeFiles/swappywrapper.dir/UnitySwappyWrapper.cpp.o	326b6a150bb8c840
 2024	3755	7956851483885938	D:/Unity3D_Projects/2D_MathRainGame/Math-Rain-Game/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/Debug/3j6t4e4e/obj/arm64-v8a/libswappywrapper.so	c3d4626293f406fa
 74	8204	7956851530026447	GameActivity/CMakeFiles/game.dir/UGAInputKeyEvent.cpp.o	91a3ebedfc6a9be6
+135	8898	7956851537469098	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	72df3c01ad4a6c3a
 24	8239	7956851530313758	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	f97fee42c14c7fc6
+37	8596	7956851534526344	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	b29147083730f822
 160	8330	7956851531053588	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	ae68a5e0af4d5a1b
 118	8537	7956851533232420	GameActivity/CMakeFiles/game.dir/UGAEntry.cpp.o	3d18399fe00b1d73
-37	8596	7956851534526344	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	b29147083730f822
 53	8838	7956851536521821	GameActivity/CMakeFiles/game.dir/UGAInput.cpp.o	52638e39cf62a550
-135	8898	7956851537469098	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	72df3c01ad4a6c3a
-1	9345	7956851541842601	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	320addbd60dff457
 9346	9523	7956851543967821	D:/Unity3D_Projects/2D_MathRainGame/Math-Rain-Game/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/Debug/3j6t4e4e/obj/arm64-v8a/libgame.so	a70706dede69bb9c
+176	1161	7957920741118966	FramePacing/CMakeFiles/swappywrapper.dir/UnitySwappyWrapper.cpp.o	326b6a150bb8c840
+1162	2510	7957920752840617	D:/Unity3D_Projects/2D_MathRainGame/Math-Rain-Game/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/Debug/3j6t4e4e/obj/arm64-v8a/libswappywrapper.so	c3d4626293f406fa
+142	5475	7957920784418576	GameActivity/CMakeFiles/game.dir/UGAInputKeyEvent.cpp.o	91a3ebedfc6a9be6
+49	5504	7957920784809559	GameActivity/CMakeFiles/game.dir/UGAConfiguration.cpp.o	f97fee42c14c7fc6
+84	5555	7957920784965456	GameActivity/CMakeFiles/game.dir/UGAEntry.cpp.o	3d18399fe00b1d73
+123	5560	7957920785110017	GameActivity/CMakeFiles/game.dir/UGAInputMotionEvent.cpp.o	ae68a5e0af4d5a1b
+66	5638	7957920785958482	GameActivity/CMakeFiles/game.dir/UGADebug.cpp.o	b29147083730f822
+105	5987	7957920789398048	GameActivity/CMakeFiles/game.dir/UGAInput.cpp.o	52638e39cf62a550
+36	6088	7957920790477513	GameActivity/CMakeFiles/game.dir/UGAApplication.cpp.o	320addbd60dff457
+159	6605	7957920795751124	GameActivity/CMakeFiles/game.dir/UGASoftKeyboard.cpp.o	72df3c01ad4a6c3a
+6606	6868	7957920798416848	D:/Unity3D_Projects/2D_MathRainGame/Math-Rain-Game/Library/Bee/Android/Prj/IL2CPP/Gradle/unityLibrary/build/intermediates/cxx/Debug/3j6t4e4e/obj/arm64-v8a/libgame.so	a70706dede69bb9c
