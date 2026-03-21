@@ -265,6 +265,12 @@ public class GameManager : MonoBehaviour
             lifeHandled = true;
             combo++;
 
+            if (DailyChallengeManager.Instance != null)
+            {
+                DailyChallengeManager.Instance.AddAnswer();
+                DailyChallengeManager.Instance.UpdateCombo(combo);
+            }
+
             int points = 1;
             if (combo >= 10) points = 5;
             else if (combo >= 5) points = 3;
@@ -568,6 +574,8 @@ public class GameManager : MonoBehaviour
     void GameOver()
     {
         EndRun();
+        DailyChallengeManager.Instance.AddRun();
+
         if (rewardGiven) return;
 
         rewardGiven = true;
