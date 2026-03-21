@@ -60,6 +60,11 @@ public class GameManager : MonoBehaviour
     float runTime = 0f;
 
     public HeartUI heartUI;
+
+    // 🔥 Gameplay progression
+    enum OperationType { Add, Subtract }
+
+    OperationType currentOperation;
     void Awake()
     {
         Instance = this;
@@ -121,41 +126,83 @@ public class GameManager : MonoBehaviour
 
         int min = 1, max = 10;
 
+        // 🎯 LEVEL BASED DIFFICULTY
         switch (currentLevel)
         {
-            case 1: min = 1; max = 10; break;
-            case 2: min = 5; max = 20; break;
-            case 3: min = 10; max = 50; break;
-            case 4: min = 20; max = 100; break;
-            default: min = 50; max = 200; break;
+            case 1:
+                min = 1; max = 10;
+                currentOperation = OperationType.Add;
+                break;
+
+            case 2:
+                min = 5; max = 20;
+                currentOperation = (Random.value > 0.5f) ? OperationType.Add : OperationType.Subtract;
+                break;
+
+            case 3:
+                min = 10; max = 50;
+                currentOperation = (Random.value > 0.5f) ? OperationType.Add : OperationType.Subtract;
+                break;
+
+            default:
+                min = 20; max = 100;
+                currentOperation = (Random.value > 0.5f) ? OperationType.Add : OperationType.Subtract;
+                break;
         }
 
+        if (combo >= 5)
+        {
+            max += 10;
+        }
+        if (combo >= 10)
+        {
+            AudioManager.Instance.PlaySFX(AudioManager.Instance.combo);
+        }
         int a = Random.Range(min, max);
         int b = Random.Range(min, max);
 
-        correctAnswer = a + b;
+        string question = "";
 
-        // 🔥 START ANIMATION INSTEAD OF DIRECT SET
-        StartCoroutine(AnimateQuestion(a, b));
+        // 🎯 OPERATION LOGIC
+        if (currentOperation == OperationType.Add)
+        {
+            correctAnswer = a + b;
+            question = a + " + " + b;
+        }
+        else
+        {
+            // 🔥 avoid negative confusion (early levels)
+            if (currentLevel <= 2 && a < b)
+            {
+                int temp = a;
+                a = b;
+                b = temp;
+            }
+
+            correctAnswer = a - b;
+            question = a + " - " + b;
+        }
+
+        StartCoroutine(AnimateQuestion(question));
 
         GenerateAnswers();
     }
-    IEnumerator AnimateQuestion(int a, int b)
+    IEnumerator AnimateQuestion(string question)
     {
         RectTransform rt = questionText.GetComponent<RectTransform>();
         CanvasGroup cg = questionText.GetComponent<CanvasGroup>();
+        if (cg == null)
+            cg = questionText.gameObject.AddComponent<CanvasGroup>();
 
         AudioManager.Instance.PlaySFX(AudioManager.Instance.newQuestion, 0.8f);
 
-        // Reset state
         rt.localScale = Vector3.zero;
         cg.alpha = 0;
 
-        questionText.text = a + " + " + b;
+        questionText.text = question;
 
         float t = 0;
 
-        // 🔥 POP IN
         while (t < 0.25f)
         {
             t += Time.deltaTime;
@@ -167,7 +214,6 @@ public class GameManager : MonoBehaviour
             yield return null;
         }
 
-        // 🔥 SETTLE
         t = 0;
         while (t < 0.1f)
         {
@@ -175,7 +221,6 @@ public class GameManager : MonoBehaviour
             float progress = t / 0.1f;
 
             rt.localScale = Vector3.Lerp(Vector3.one * 1.2f, Vector3.one, progress);
-
             yield return null;
         }
     }
@@ -186,13 +231,21 @@ public class GameManager : MonoBehaviour
         for (int i = 0; i < 3; i++)
         {
             if (i == correctIndex)
+            {
                 currentAnswers[i] = correctAnswer;
+            }
             else
             {
                 int wrong;
+
+                int range = (currentLevel <= 2) ? 3 : 2; // 🔥 tighter = harder
+
                 do
                 {
-                    wrong = correctAnswer + Random.Range(-3, 4);
+                    int offset = Random.Range(1, range + 1);
+                    wrong = (Random.value > 0.5f)
+                        ? correctAnswer + offset
+                        : correctAnswer - offset;
                 }
                 while (wrong == correctAnswer || System.Array.Exists(currentAnswers, x => x == wrong));
 
@@ -385,7 +438,9 @@ public class GameManager : MonoBehaviour
         Time.timeScale = 1f;
 
         currentLives = 1;
-        heartUI.Setup(currentLives);
+        heartUI.Setup(maxLives);
+        heartUI.SetLives(currentLives);
+
         lifeHandled = false;
         UpdateUI();
 
@@ -694,5 +749,10 @@ public class GameManager : MonoBehaviour
         data.SaveData();
 
         Debug.Log("✅ EndRun Saved | Score: " + runScore);
+    }
+
+    public int GetCombo()
+    {
+        return combo;
     }
 }

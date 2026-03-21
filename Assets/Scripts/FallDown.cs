@@ -10,20 +10,19 @@ public class FallDown : MonoBehaviour
     float currentSpeed;
 
     bool isHandled = false;
-    bool canHit = false; // 🔥 controls when object can damage
+    bool canHit = false;
 
     void Start()
     {
         rt = GetComponent<RectTransform>();
         currentSpeed = baseSpeed;
 
-        // 🔥 IMPORTANT: delay collision to prevent instant hit
         StartCoroutine(EnableHitAfterDelay());
     }
 
     IEnumerator EnableHitAfterDelay()
     {
-        yield return new WaitForSeconds(0.3f); // 🔥 tweak if needed
+        yield return new WaitForSeconds(0.3f);
         canHit = true;
     }
 
@@ -32,36 +31,45 @@ public class FallDown : MonoBehaviour
         if (GameManager.Instance == null || GameManager.Instance.isGamePaused)
             return;
 
-        // 🎯 TARGET SPEED BASED ON SCORE
-        float targetSpeed = baseSpeed + GameManager.Instance.GetScore() * 10f;
-        targetSpeed = Mathf.Clamp(targetSpeed, 150f, 600f);
+        float score = GameManager.Instance.GetScore();
 
-        // 🔥 SMOOTH SPEED TRANSITION
+        // 🔥 EXPONENTIAL SPEED CURVE (CORE FEEL)
+        float targetSpeed = baseSpeed + Mathf.Pow(score, 1.2f) * 8f;
+
+        // 🔥 COMBO BOOST (DOPAMINE FEEL)
+        if (GameManager.Instance.GetCombo() >= 5)
+        {
+            targetSpeed += 30f;
+        }
+
+        targetSpeed = Mathf.Clamp(targetSpeed, 150f, 650f);
+
+        // 🔥 SMOOTH TRANSITION
         currentSpeed = Mathf.Lerp(currentSpeed, targetSpeed, Time.deltaTime * 2f);
 
-        // 🎯 UI ZOOM EFFECT (arcade feel)
+        // 🎯 UI ZOOM EFFECT (AAA FEEL)
         if (GameManager.Instance.gameRoot != null)
         {
             float t = Mathf.InverseLerp(200f, 600f, currentSpeed);
             float targetScale = Mathf.Lerp(1f, 1.08f, t);
 
-            Vector3 newScale = Vector3.Lerp(
+            GameManager.Instance.gameRoot.localScale = Vector3.Lerp(
                 GameManager.Instance.gameRoot.localScale,
                 Vector3.one * targetScale,
                 Time.deltaTime * 4f
             );
-
-            GameManager.Instance.gameRoot.localScale = newScale;
         }
 
+        // 🔥 MICRO VARIATION (LESS ROBOTIC)
+        float variation = Mathf.Sin(Time.time * 5f) * 10f;
+
         // 🎯 MOVE DOWN
-        rt.anchoredPosition -= new Vector2(0, currentSpeed * Time.deltaTime);
+        rt.anchoredPosition -= new Vector2(0, (currentSpeed + variation) * Time.deltaTime);
     }
 
     void OnTriggerEnter2D(Collider2D other)
     {
         if (isHandled) return;
-
         if (!canHit) return;
         if (GameManager.Instance == null) return;
         if (GameManager.Instance.isGamePaused) return;
@@ -77,7 +85,9 @@ public class FallDown : MonoBehaviour
             {
                 GameManager.Instance.lifeHandled = true;
 
-                // ✅ ONLY THIS
+                // 💥 IMPACT FEEDBACK (VERY IMPORTANT)
+                StartCoroutine(HitImpact());
+
                 GameManager.Instance.MissCorrectAnswer();
             }
 
@@ -85,5 +95,13 @@ public class FallDown : MonoBehaviour
         }
     }
 
+    // 💥 SMALL TIME SLOW FOR IMPACT
+    IEnumerator HitImpact()
+    {
+        Time.timeScale = 0.8f;
 
+        yield return new WaitForSecondsRealtime(0.05f);
+
+        Time.timeScale = 1f;
+    }
 }
