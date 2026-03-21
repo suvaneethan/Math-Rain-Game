@@ -28,10 +28,7 @@ public class GameManager : MonoBehaviour
 
     public Image damageFlash;
 
-    [Header("Audio")]
-    public AudioSource audioSource;
-    public AudioClip correctSound;
-    public AudioClip wrongSound;
+  
 
     [Header("Gameplay")]
     public AnswerSpawner spawner; // 🔥 assign in inspector
@@ -58,7 +55,9 @@ public class GameManager : MonoBehaviour
     public bool isReviving = false;
     private bool pendingRevive = false; // 🔥 ADD THIS FLAG
 
+    
 
+  
 
     void Awake()
     {
@@ -135,6 +134,8 @@ public class GameManager : MonoBehaviour
         RectTransform rt = questionText.GetComponent<RectTransform>();
         CanvasGroup cg = questionText.GetComponent<CanvasGroup>();
 
+        AudioManager.Instance.PlaySFX(AudioManager.Instance.newQuestion, 0.8f);
+
         // Reset state
         rt.localScale = Vector3.zero;
         cg.alpha = 0;
@@ -143,7 +144,7 @@ public class GameManager : MonoBehaviour
 
         float t = 0;
 
-        // 🔥 POP IN (scale + fade)
+        // 🔥 POP IN
         while (t < 0.25f)
         {
             t += Time.deltaTime;
@@ -155,7 +156,7 @@ public class GameManager : MonoBehaviour
             yield return null;
         }
 
-        // 🔥 SETTLE (bounce back)
+        // 🔥 SETTLE
         t = 0;
         while (t < 0.1f)
         {
@@ -213,8 +214,7 @@ public class GameManager : MonoBehaviour
             EconomyManager.Instance.AddRunCoins(coinReward);
             UpdateCoinUI();
 
-            audioSource.pitch = Random.Range(0.9f, 1.1f);
-            audioSource.PlayOneShot(correctSound);
+            AudioManager.Instance.PlayCombo(combo);
 
             if (combo >= 10)
                 StartCoroutine(ComboSlowMotion());
@@ -313,10 +313,12 @@ public class GameManager : MonoBehaviour
 
         currentLives--;
 
-        audioSource.PlayOneShot(wrongSound);
+        AudioManager.Instance.PlaySFX(AudioManager.Instance.wrong);
 
         if (screenShake != null)
             screenShake.Shake();
+
+        StartCoroutine(PunchUI(scoreText.transform));
 
         ShowDamageFlash();
         ResetCombo();
@@ -554,10 +556,8 @@ public class GameManager : MonoBehaviour
         rt.localScale = Vector3.zero;
 
         // 🔊 sound
-        if (audioSource != null && levelUpSound != null)
-        {
-            audioSource.PlayOneShot(levelUpSound);
-        }
+        // 🔊 Level Up Sound
+        AudioManager.Instance.PlaySFX(levelUpSound);
 
         // 🔥 POP IN
         float t = 0;
@@ -634,5 +634,26 @@ public class GameManager : MonoBehaviour
         }
 
         Debug.Log("Ad Ready Status: " + AdManager.Instance.IsAdReady);
+    }
+
+    IEnumerator PunchUI(Transform target)
+    {
+        Vector3 original = target.localScale;
+
+        float t = 0;
+        while (t < 0.1f)
+        {
+            t += Time.deltaTime;
+            target.localScale = Vector3.Lerp(original, original * 1.2f, t / 0.1f);
+            yield return null;
+        }
+
+        t = 0;
+        while (t < 0.1f)
+        {
+            t += Time.deltaTime;
+            target.localScale = Vector3.Lerp(original * 1.2f, original, t / 0.1f);
+            yield return null;
+        }
     }
 }
