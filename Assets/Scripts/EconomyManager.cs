@@ -54,4 +54,10 @@ public class EconomyManager : MonoBehaviour
     {
         runCoins = 0;
     }
+    public void SetCoins(int value)
+    {
+        coins = value;
+        PlayerPrefs.SetInt("Coins", coins);
+        PlayerPrefs.Save();
+    }
 }

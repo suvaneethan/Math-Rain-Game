@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using TMPro;
+using UnityEngine.UI;
 
 public class CharacterButton : MonoBehaviour
 {
@@ -7,7 +8,27 @@ public class CharacterButton : MonoBehaviour
 
     public GameObject lockIcon;
     public TextMeshProUGUI costText;
+
+    public Button buyButton;        // ✅ Assign in Inspector
+    public Button watchAdButton;    // ✅ Assign in Inspector
+
     public CharacterCarousel carousel;
+
+    void Awake()
+    {
+        // 🎯 Attach events
+        if (buyButton != null)
+        {
+            buyButton.onClick.RemoveAllListeners();
+            buyButton.onClick.AddListener(OnBuyClicked);
+        }
+
+        if (watchAdButton != null)
+        {
+            watchAdButton.onClick.RemoveAllListeners();
+            watchAdButton.onClick.AddListener(OnWatchAd);
+        }
+    }
 
     void OnEnable()
     {
@@ -16,27 +37,9 @@ public class CharacterButton : MonoBehaviour
 
     public void Refresh()
     {
-        if (CharacterManager.Instance == null)
-        {
-            Debug.LogError("CharacterManager is NULL!");
-            return;
-        }
-
-        if (CharacterManager.Instance.characters == null ||
-            CharacterManager.Instance.characters.Length == 0)
-        {
-            Debug.LogError("Characters array is empty!");
-            return;
-        }
-
-        if (index < 0 || index >= CharacterManager.Instance.characters.Length)
-        {
-            Debug.LogError("Invalid index: " + index);
-            return;
-        }
+        if (CharacterManager.Instance == null) return;
 
         var data = CharacterManager.Instance.characters[index];
-
         bool isLocked = !data.isUnlocked;
 
         // 🔒 Lock icon
@@ -47,95 +50,71 @@ public class CharacterButton : MonoBehaviour
         if (costText != null)
         {
             costText.gameObject.SetActive(isLocked);
-            costText.text = "💰 " + data.coinCost;
+
+            if (isLocked)
+                costText.text = "💰 " + data.coinCost;
         }
     }
 
-    public void OnClick()
+    // 💰 BUY BUTTON
+    public void OnBuyClicked()
     {
-        if (CharacterManager.Instance == null) return;
+        Debug.Log("Buy Clicked");
 
         var data = CharacterManager.Instance.characters[index];
 
-        // ✅ Already unlocked → select
         if (data.isUnlocked)
         {
-            if (carousel != null)
-                carousel.MoveToIndex(index);
-
-            CharacterManager.Instance.SelectCharacter(index);
+            UIMessage.Instance?.Show("✅ Already Unlocked");
             return;
         }
 
         int playerCoins = EconomyManager.Instance.GetCoins();
 
-        // 💰 Enough coins → unlock
         if (playerCoins >= data.coinCost)
         {
-            bool success = CharacterManager.Instance.UnlockWithCoins(index);
-
-            if (success)
+            if (CharacterManager.Instance.UnlockWithCoins(index))
             {
-                Refresh();
-
-                // 🔥 Update coin UI
+                CharacterManager.Instance.RefreshAllButtons();
                 FindObjectOfType<HomeUI>()?.UpdateCoins();
 
-                if (carousel != null)
-                    carousel.MoveToIndex(index);
-
+                carousel?.MoveToIndex(index);
                 CharacterManager.Instance.SelectCharacter(index);
+
+                UIMessage.Instance?.Show("✅ Unlocked");
             }
         }
         else
         {
-            // ❌ Not enough coins → show popup
-            if (PopupManager.Instance != null)
-                PopupManager.Instance.ShowNotEnoughCoins();
-            else
-                Debug.Log("Not enough coins!");
+            UIMessage.Instance?.Show("❌ Not enough coins");
         }
     }
 
-    public void OnBuyWithCoins()
-    {
-        if (CharacterManager.Instance == null) return;
-
-        bool success = CharacterManager.Instance.UnlockWithCoins(index);
-
-        if (success)
-        {
-            Refresh();
-
-            FindObjectOfType<HomeUI>()?.UpdateCoins();
-
-            if (carousel != null)
-                carousel.MoveToIndex(index);
-
-            CharacterManager.Instance.SelectCharacter(index);
-        }
-        else
-        {
-            if (PopupManager.Instance != null)
-                PopupManager.Instance.ShowNotEnoughCoins();
-        }
-    }
-
+    // 🎬 WATCH AD BUTTON
     public void OnWatchAd()
     {
+        Debug.Log("Watch Ad Clicked");
+
         if (AdManager.Instance == null || !AdManager.Instance.IsAdReady)
+        {
+            UIMessage.Instance?.Show("❌ Ad not ready");
             return;
+        }
+
+        // ⏳ Loading
+        UIMessage.Instance?.ShowPersistent("⏳ Loading Ad...");
 
         AdManager.Instance.ShowRewardedAd(() =>
         {
+            UIMessage.Instance?.Hide();
+
             CharacterManager.Instance.UnlockWithAd(index);
-            Refresh();
+            CharacterManager.Instance.RefreshAllButtons();
 
-            // 🔥 Optional: auto select after ad unlock
-            if (carousel != null)
-                carousel.MoveToIndex(index);
-
+            carousel?.MoveToIndex(index);
             CharacterManager.Instance.SelectCharacter(index);
+
+            UIMessage.Instance?.Show("✅ Unlocked");
         });
     }
 }

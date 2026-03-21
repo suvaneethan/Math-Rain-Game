@@ -95,4 +95,14 @@ public class CharacterManager : MonoBehaviour
 
         return characters[selectedIndex];
     }
+
+    public void RefreshAllButtons()
+    {
+        CharacterButton[] buttons = FindObjectsOfType<CharacterButton>(true);
+
+        foreach (var btn in buttons)
+        {
+            btn.Refresh();
+        }
+    }
 }
