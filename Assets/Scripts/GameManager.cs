@@ -124,11 +124,49 @@ public class GameManager : MonoBehaviour
         int b = Random.Range(min, max);
 
         correctAnswer = a + b;
-        questionText.text = a + " + " + b;
+
+        // 🔥 START ANIMATION INSTEAD OF DIRECT SET
+        StartCoroutine(AnimateQuestion(a, b));
 
         GenerateAnswers();
     }
+    IEnumerator AnimateQuestion(int a, int b)
+    {
+        RectTransform rt = questionText.GetComponent<RectTransform>();
+        CanvasGroup cg = questionText.GetComponent<CanvasGroup>();
 
+        // Reset state
+        rt.localScale = Vector3.zero;
+        cg.alpha = 0;
+
+        questionText.text = a + " + " + b;
+
+        float t = 0;
+
+        // 🔥 POP IN (scale + fade)
+        while (t < 0.25f)
+        {
+            t += Time.deltaTime;
+            float progress = t / 0.25f;
+
+            rt.localScale = Vector3.Lerp(Vector3.zero, Vector3.one * 1.2f, progress);
+            cg.alpha = progress;
+
+            yield return null;
+        }
+
+        // 🔥 SETTLE (bounce back)
+        t = 0;
+        while (t < 0.1f)
+        {
+            t += Time.deltaTime;
+            float progress = t / 0.1f;
+
+            rt.localScale = Vector3.Lerp(Vector3.one * 1.2f, Vector3.one, progress);
+
+            yield return null;
+        }
+    }
     void GenerateAnswers()
     {
         int correctIndex = Random.Range(0, 3);

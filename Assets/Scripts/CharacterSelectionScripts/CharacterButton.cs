@@ -86,7 +86,7 @@ public class CharacterButton : MonoBehaviour
         }
         else
         {
-            UIMessage.Instance?.Show("❌ Not enough coins");
+            UIMessage.Instance?.Show("Insufficient coins. Watch ad to unlock.");
         }
     }
 
