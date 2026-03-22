@@ -31,6 +31,7 @@ public class GameManager : MonoBehaviour
     public bool isSpawningNow = false;
    public bool spawnRequested = false;
     bool isProcessingMiss = false;
+    public bool isMissLocked = false;
     [Header("Gameplay")]
     public AnswerSpawner spawner; // 🔥 assign in inspector
     public ScreenShake screenShake;
@@ -379,6 +380,8 @@ public class GameManager : MonoBehaviour
 
     public void MissCorrectAnswer()
     {
+        if (isMissLocked) return; // 🔥 HARD BLOCK
+        isMissLocked = true;
         if (isProcessingMiss) return; // 🔥 HARD BLOCK (CRITICAL)
         isProcessingMiss = true;
 
@@ -426,9 +429,10 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSecondsRealtime(0.1f);
 
         isProcessingMiss = false;
-        spawnRequested = false; // 🔥 also reset here
-    }
-   
+        isMissLocked = false; // 🔥 RESET
+        spawnRequested = false;
+    }   
+
     void RevivePlayer()
     {
         Debug.Log("✅ RevivePlayer CALLED");

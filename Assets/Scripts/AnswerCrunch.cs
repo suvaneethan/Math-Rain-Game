@@ -29,9 +29,7 @@ public class AnswerCrunch : MonoBehaviour
 
     IEnumerator FreezeFrame()
     {
-        Time.timeScale = 0f;
         yield return new WaitForSecondsRealtime(freezeTime);
-        Time.timeScale = 1f;
     }
 
     IEnumerator Crunch()

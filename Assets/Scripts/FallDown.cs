@@ -77,19 +77,17 @@ public class FallDown : MonoBehaviour
 
         if (other.CompareTag("Danger"))
         {
+            // 🔥 GLOBAL LOCK FIRST (CRITICAL)
+            if (GameManager.Instance.lifeHandled) return;
+
+            GameManager.Instance.lifeHandled = true;
             isHandled = true;
 
             Debug.Log("🔥 HIT DETECTED");
 
-            if (!GameManager.Instance.lifeHandled)
-            {
-                GameManager.Instance.lifeHandled = true;
+            StartCoroutine(HitImpact());
 
-                // 💥 IMPACT FEEDBACK (VERY IMPORTANT)
-                StartCoroutine(HitImpact());
-
-                GameManager.Instance.MissCorrectAnswer();
-            }
+            GameManager.Instance.MissCorrectAnswer();
 
             Destroy(gameObject);
         }
