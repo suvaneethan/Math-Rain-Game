@@ -8,7 +8,9 @@ public class DailyRewardManager : MonoBehaviour
     int currentDay;
     string lastClaimDate;
 
-  
+    // 🔥 EVENT
+    public Action OnDailyRewardAvailable;
+
     void Awake()
     {
         if (Instance == null)
@@ -22,10 +24,14 @@ public class DailyRewardManager : MonoBehaviour
             Destroy(gameObject);
         }
     }
+
     void LoadData()
     {
         currentDay = PlayerPrefs.GetInt("DailyDay", 1);
         lastClaimDate = PlayerPrefs.GetString("LastClaimDate", "");
+
+        // 🔥 CHECK ON LOAD
+        CheckForNewDay();
     }
 
     void SaveData()
@@ -33,6 +39,18 @@ public class DailyRewardManager : MonoBehaviour
         PlayerPrefs.SetInt("DailyDay", currentDay);
         PlayerPrefs.SetString("LastClaimDate", lastClaimDate);
         PlayerPrefs.Save();
+    }
+
+    // 🔥 CHECK DAILY RESET
+    void CheckForNewDay()
+    {
+        string today = DateTime.Now.ToString("yyyyMMdd");
+
+        if (lastClaimDate != today)
+        {
+            // 🔥 NOTIFY UI
+            OnDailyRewardAvailable?.Invoke();
+        }
     }
 
     public bool CanClaim()

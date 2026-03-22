@@ -20,9 +20,9 @@ public class AdManager : MonoBehaviour
     // ✅ Retry System
     private int retryCount = 0;
 
-    // ✅ Cooldown System
-    private float lastAdTime = -100f;
-    private float adCooldown = 30f;
+    //// ✅ Cooldown System
+    //private float lastAdTime = -100f;
+    //private float adCooldown = 30f;
 
     void Awake()
     {
@@ -183,18 +183,18 @@ public class AdManager : MonoBehaviour
         }
 
         // ✅ Cooldown check
-        if (Time.time - lastAdTime < adCooldown)
-        {
-            Debug.Log("⏳ Ad cooldown active");
-            return false;
-        }
+        //if (Time.time - lastAdTime < adCooldown)
+        //{
+        //    Debug.Log("⏳ Ad cooldown active");
+        //    return false;
+        //}
 
         // ✅ Proper readiness check
         if (IsAdReady)
         {
             Debug.Log("▶️ Showing Rewarded Ad");
 
-            lastAdTime = Time.time;
+           // lastAdTime = Time.time;
 
             pendingRewardCallback = onReward;
             shouldReward = false;

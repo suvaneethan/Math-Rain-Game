@@ -98,6 +98,9 @@ public class GameManager : MonoBehaviour
         {
             spawner.ClearAll(); // 🔥 remove any leftover objects
         }
+
+        questionText.outlineWidth = 0.35f;
+        questionText.outlineColor = Color.black;    
     }
 
     void Update()
@@ -192,36 +195,66 @@ public class GameManager : MonoBehaviour
     {
         RectTransform rt = questionText.GetComponent<RectTransform>();
         CanvasGroup cg = questionText.GetComponent<CanvasGroup>();
+
         if (cg == null)
             cg = questionText.gameObject.AddComponent<CanvasGroup>();
 
+        // 🔊 sound
         AudioManager.Instance.PlaySFX(AudioManager.Instance.newQuestion, 0.8f);
-
-        rt.localScale = Vector3.zero;
-        cg.alpha = 0;
 
         questionText.text = question;
 
+        // 🔥 START BIG (zoom out → zoom in feel)
+        rt.localScale = Vector3.one * 2.2f;
+        cg.alpha = 0;
+
         float t = 0;
 
+        // 🎯 ZOOM IN (main effect)
         while (t < 0.25f)
         {
             t += Time.deltaTime;
-            float progress = t / 0.25f;
+            float p = t / 0.25f;
 
-            rt.localScale = Vector3.Lerp(Vector3.zero, Vector3.one * 1.2f, progress);
-            cg.alpha = progress;
+            rt.localScale = Vector3.Lerp(Vector3.one * 2.2f, Vector3.one * 0.9f, p);
+            cg.alpha = p;
 
             yield return null;
         }
 
+        // 🔥 BOUNCE BACK (settle)
         t = 0;
-        while (t < 0.1f)
+        while (t < 0.12f)
         {
             t += Time.deltaTime;
-            float progress = t / 0.1f;
+            float p = t / 0.12f;
 
-            rt.localScale = Vector3.Lerp(Vector3.one * 1.2f, Vector3.one, progress);
+            rt.localScale = Vector3.Lerp(Vector3.one * 0.9f, Vector3.one, p);
+            yield return null;
+        }
+
+        // 💥 SMALL PUNCH (extra feel)
+        StartCoroutine(QuestionPunch(rt));
+    }
+    IEnumerator QuestionPunch(RectTransform rt)
+    {
+        Vector3 original = rt.localScale;
+
+        float t = 0;
+
+        while (t < 0.08f)
+        {
+            t += Time.deltaTime;
+            rt.localScale = Vector3.Lerp(original, original * 1.1f, t / 0.08f);
+            yield return null;
+        }
+
+        t = 0;
+
+        while (t < 0.08f)
+        {
+            t += Time.deltaTime;
+            rt.localScale = Vector3.Lerp(original * 1.1f, original, t / 0.08f);
             yield return null;
         }
     }

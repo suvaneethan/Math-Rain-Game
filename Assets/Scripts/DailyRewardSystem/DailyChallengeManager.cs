@@ -15,9 +15,9 @@ public class DailyChallengeManager : MonoBehaviour
 
     bool rewardClaimed;
     string lastDate;
+    public System.Action OnDailyUpdated;
 
-    
-        void Awake()
+    void Awake()
         {
             if (Instance == null)
             {
@@ -30,9 +30,13 @@ public class DailyChallengeManager : MonoBehaviour
             {
                 Destroy(gameObject);
             }
-        } 
-    
+        }
 
+    void Start()
+    {
+        LoadData();
+        OnDailyUpdated?.Invoke();
+    }
     void LoadData()
     {
         string today = DateTime.Now.ToString("yyyyMMdd");
@@ -65,26 +69,36 @@ public class DailyChallengeManager : MonoBehaviour
         PlayerPrefs.SetInt("DC_Runs", currentRuns);
         PlayerPrefs.SetInt("DC_Reward", rewardClaimed ? 1 : 0);
         PlayerPrefs.Save();
+
+        OnDailyUpdated?.Invoke(); // 🔥 CRITICAL FIX
     }
 
     public void AddAnswer()
     {
-        currentAnswers++;
+        if (IsCompleted()) return;
+
+        currentAnswers = Mathf.Min(currentAnswers + 1, targetAnswers);
+
         SaveData();
     }
 
     public void UpdateCombo(int combo)
     {
+        if (IsCompleted()) return;
+
         if (combo > bestCombo)
         {
-            bestCombo = combo;
+            bestCombo = Mathf.Min(combo, targetCombo);
             SaveData();
         }
     }
 
     public void AddRun()
     {
-        currentRuns++;
+        if (IsCompleted()) return;
+
+        currentRuns = Mathf.Min(currentRuns + 1, targetRuns);
+
         SaveData();
     }
 
