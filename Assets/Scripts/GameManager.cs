@@ -69,6 +69,13 @@ public class GameManager : MonoBehaviour
     void Awake()
     {
         Instance = this;
+
+        // 🔥 Reset run coins at game start (SAFE PLACE)
+        if (EconomyManager.Instance != null)
+        {
+            EconomyManager.Instance.ResetRunCoins();
+            Debug.Log("🔄 RunCoins Reset in GameManager Awake");
+        }
     }
 
     void Start()
@@ -83,8 +90,7 @@ public class GameManager : MonoBehaviour
 
         bestScore = PlayerPrefs.GetInt("BestScore", 0);
         currentLives = maxLives;
-        UpdateUI();
-        EconomyManager.Instance.ResetRunCoins();
+        UpdateUI();    
         UpdateCoinUI();
 
         heartUI.Setup(maxLives);
@@ -105,7 +111,7 @@ public class GameManager : MonoBehaviour
 
     void Update()
     {
-        UpdateCoinUI();
+       // UpdateCoinUI();
 
         if (!isGamePaused && !isGameOver)
         {
@@ -357,16 +363,19 @@ public class GameManager : MonoBehaviour
 
     void UpdateCoinUI()
     {
-        if (coinText != null && EconomyManager.Instance != null)
-        {
-            coinText.text = "Coins: " + EconomyManager.Instance.GetRunCoins();
+       if (coinText != null )
+       {
+            int coins = EconomyManager.Instance.GetRunCoins();
+            coinText.text = "Coins: " + coins;
+
+            Debug.Log("💰 UI Updated: " + coins);
         }
     }
     void UpdateUI()
     {
         scoreText.text = "Score: " + score;
       //  lifeText.text = "Lives: " + currentLives;
-       
+      
 
         if (combo <= 1)
             comboText.text = "";

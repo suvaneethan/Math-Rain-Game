@@ -6835,7 +6835,7 @@ MonoBehaviour:
   coinPrefab: {fileID: 4226072565360923920, guid: e4f5155eb11a54a4fbe1dfc561d1a024, type: 3}
   canvas: {fileID: 815916492}
   audioSource: {fileID: 461270055}
-  coinSound: {fileID: 8300000, guid: 1e60109732aa7a24c928483c31652f75, type: 3}
+  coinSound: {fileID: 8300000, guid: 39233dfd85079f6408004e901bf2fa7e, type: 3}
 --- !u!4 &1008467629
 Transform:
   m_ObjectHideFlags: 0
@@ -9939,7 +9939,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: -70}
+  m_AnchoredPosition: {x: 0, y: -113.32}
   m_SizeDelta: {x: 220, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1461322400
@@ -13354,7 +13354,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -220, y: -70}
+  m_AnchoredPosition: {x: -150, y: -70}
   m_SizeDelta: {x: 180, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1879481184
@@ -14832,7 +14832,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 50}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 320, y: 64.89}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &2133186735
@@ -14956,7 +14956,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: -3084279778283004707, guid: 378fc1b46969b584eb9e8381cab5cc0e, type: 3}
+  m_Sprite: {fileID: -3917997363364228131, guid: 6276fa9b12c0604498fc82c401b087b7, type: 3}
   m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1

@@ -49,6 +49,8 @@ public class EconomyManager : MonoBehaviour
     public void AddRunCoins(int amount)
     {
         runCoins += amount;
+
+        Debug.Log("💰 RunCoins Added: " + amount + " | Total: " + runCoins);
     }
     public IEnumerator AddCoinsAnimated(int amount, float duration = 0.6f)
     {
