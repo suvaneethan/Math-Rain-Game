@@ -44,7 +44,7 @@ public class HomeUI : MonoBehaviour
         displayedCoins = coins;
         targetCoins = coins;
 
-        totalCoinText.text = "Coins: " + coins;
+        totalCoinText.text = "Total Coins: " + coins;
     }
 
     // 🚀 AAA SCROLL ANIMATION (IMPORTANT)
@@ -64,13 +64,13 @@ public class HomeUI : MonoBehaviour
         {
             displayedCoins += 1; // 🔥 REAL SCROLL
 
-            totalCoinText.text = "Coins: " + displayedCoins;
+            totalCoinText.text = "Total Coins: " + displayedCoins;
 
             yield return new WaitForSeconds(0.01f); // 🔥 speed control
         }
 
         displayedCoins = targetCoins;
-        totalCoinText.text = "Coins: " + targetCoins;
+        totalCoinText.text = "Total Coins: " + targetCoins;
     }
 
     public void OnPlay()
@@ -81,5 +81,11 @@ public class HomeUI : MonoBehaviour
     public void OnExit()
     {
         Application.Quit();
+    }
+
+    public void RestartGame()
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }
 }

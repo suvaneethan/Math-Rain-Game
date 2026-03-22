@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using System.Collections;
+using UnityEngine;
 
 public class EconomyManager : MonoBehaviour
 {
@@ -49,7 +50,30 @@ public class EconomyManager : MonoBehaviour
     {
         runCoins += amount;
     }
+    public IEnumerator AddCoinsAnimated(int amount, float duration = 0.6f)
+    {
+        int startCoins = coins;
+        int targetCoins = coins + amount;
 
+        float timer = 0f;
+
+        while (timer < duration)
+        {
+            timer += Time.deltaTime;
+            float t = timer / duration;
+
+            coins = Mathf.RoundToInt(Mathf.Lerp(startCoins, targetCoins, t));
+            PlayerPrefs.SetInt("Coins", coins);
+
+            yield return null;
+        }
+
+        coins = targetCoins;
+        PlayerPrefs.SetInt("Coins", coins);
+        PlayerPrefs.Save();
+
+        Debug.Log("✨ Animated Coins Added: " + amount);
+    }
     public void ResetRunCoins()
     {
         runCoins = 0;

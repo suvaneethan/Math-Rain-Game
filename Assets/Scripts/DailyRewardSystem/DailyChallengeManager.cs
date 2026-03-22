@@ -1,13 +1,14 @@
 ﻿using UnityEngine;
 using System;
+using System.Collections;
 
 public class DailyChallengeManager : MonoBehaviour
 {
     public static DailyChallengeManager Instance;
 
-    public int targetAnswers = 20;
-    public int targetCombo = 10;
-    public int targetRuns = 3;
+    public int targetAnswers = 20;  //20
+    public int targetCombo = 10; //10
+    public int targetRuns = 3;//3
 
     int currentAnswers;
     int bestCombo;
@@ -17,26 +18,24 @@ public class DailyChallengeManager : MonoBehaviour
     string lastDate;
     public System.Action OnDailyUpdated;
 
+    public bool IsReady { get; private set; } = false;
     void Awake()
-        {
-            if (Instance == null)
-            {
-                Instance = this;
-                DontDestroyOnLoad(gameObject);
-
-
-            }
-            else
-            {
-                Destroy(gameObject);
-            }
-        }
-
-    void Start()
     {
-        LoadData();
-        OnDailyUpdated?.Invoke();
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+
+            LoadData();
+
+            IsReady = true; // 🔥 IMPORTANT
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
     }
+
     void LoadData()
     {
         string today = DateTime.Now.ToString("yyyyMMdd");
@@ -118,16 +117,46 @@ public class DailyChallengeManager : MonoBehaviour
 
     public void ClaimReward()
     {
-        if (!CanClaimReward()) return;
+        Debug.Log("🔥 ClaimReward CALLED");
 
-        EconomyManager.Instance.AddCoins(GetReward());
+        if (!CanClaimReward())
+        {
+            Debug.Log("❌ Cannot claim reward");
+            return;
+        }
+
+        if (EconomyManager.Instance == null)
+        {
+            Debug.LogError("❌ EconomyManager NULL");
+            return;
+        }
 
         rewardClaimed = true;
         SaveData();
 
-        Debug.Log("🎯 Daily Challenge Completed!");
+        StartCoroutine(RewardFlow());
     }
+    IEnumerator RewardFlow()
+    {
+        int reward = GetReward();
 
+        yield return new WaitForSeconds(0.1f);
+
+        // 🎯 Animate coins internally
+        yield return StartCoroutine(
+            EconomyManager.Instance.AddCoinsAnimated(reward)
+        );
+
+        // 🎯 AFTER animation → update UI properly
+        var home = FindObjectOfType<HomeUI>();
+        if (home != null)
+        {
+            int finalCoins = EconomyManager.Instance.GetCoins();
+            home.StartCoinScrollAnimation(finalCoins);
+        }
+
+        Debug.Log("🎯 Reward Animation Done");
+    }
     public int GetAnswers() => currentAnswers;
     public int GetBestCombo() => bestCombo;
     public int GetRuns() => currentRuns;

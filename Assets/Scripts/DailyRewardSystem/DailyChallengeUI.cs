@@ -22,11 +22,23 @@ public class DailyChallengeUI : MonoBehaviour
 
     int lastAnswer, lastCombo, lastRun;
 
+
     void OnEnable()
     {
-        if (DailyChallengeManager.Instance != null)
-            DailyChallengeManager.Instance.OnDailyUpdated += UpdateUI;
+        StartCoroutine(WaitAndInit());
+    }
 
+    IEnumerator WaitAndInit()
+    {
+        // 🔥 wait until manager exists
+        yield return new WaitUntil(() => DailyChallengeManager.Instance != null);
+
+        // 🔥 wait until data loaded
+        yield return new WaitUntil(() => DailyChallengeManager.Instance.IsReady);
+
+        DailyChallengeManager.Instance.OnDailyUpdated += UpdateUI;
+
+        // 🔥 FORCE FIRST UPDATE
         UpdateUI();
     }
 
@@ -59,12 +71,16 @@ public class DailyChallengeUI : MonoBehaviour
         if (DailyChallengeManager.Instance == null) return;
 
         var dc = DailyChallengeManager.Instance;
-
+        // 🔥 ALWAYS SET TEXT (CRITICAL FIX)
+        answerText.text = $"<b>ANS</b>  {dc.GetAnswers()} / {dc.targetAnswers}";
+        comboText.text = $"<b>COMBO</b>  {dc.GetBestCombo()} / {dc.targetCombo}";
+        runText.text = $"<b>RUN</b>  {dc.GetRuns()} / {dc.targetRuns}";
         // 🎯 Targets
         answerTarget = (float)dc.GetAnswers() / dc.targetAnswers;
         comboTarget = (float)dc.GetBestCombo() / dc.targetCombo;
         runTarget = (float)dc.GetRuns() / dc.targetRuns;
 
+      
         // 🎯 Animate text only if changed
         if (dc.GetAnswers() != lastAnswer)
             StartCoroutine(AnimateText(answerText, "ANS", dc.GetAnswers(), dc.targetAnswers));
@@ -100,7 +116,6 @@ public class DailyChallengeUI : MonoBehaviour
             claimButton.transform.localScale = Vector3.one;
         }
 
-        // 💥 completion flash
         CheckCompletionFlash(answerFill);
         CheckCompletionFlash(comboFill);
         CheckCompletionFlash(runFill);
@@ -199,11 +214,20 @@ public class DailyChallengeUI : MonoBehaviour
 
     public void OnClaim()
     {
-        DailyChallengeManager.Instance.ClaimReward();
+        Vector3 startPos = claimButton.transform.position;
 
-        var home = FindObjectOfType<HomeUI>();
-        if (home != null)
-            home.UpdateCoins();
+        var profile = FindObjectOfType<ProfileUI>();
+
+        if (profile != null)
+        {
+            CoinFlyManager.Instance.PlayCoinFly(
+                startPos,
+                profile.coinsText.transform,
+                15
+            );
+        }
+
+        DailyChallengeManager.Instance.ClaimReward();
 
         UpdateUI();
     }

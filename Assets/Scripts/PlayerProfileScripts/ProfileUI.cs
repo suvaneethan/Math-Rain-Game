@@ -27,6 +27,11 @@ public class ProfileUI : MonoBehaviour
     public Sprite masterIcon;
     public Sprite legendIcon;
 
+    public RectTransform panelRoot;
+
+    int lastCoins = -1;
+    Coroutine pulseRoutine;
+
     void OnEnable()
     {
         StartCoroutine(WaitAndUpdate());
@@ -34,12 +39,12 @@ public class ProfileUI : MonoBehaviour
 
     IEnumerator WaitAndUpdate()
     {
-        // wait until PlayerDataManager is ready
         while (PlayerDataManager.Instance == null)
             yield return null;
 
         UpdateUI();
     }
+
     public void UpdateUI()
     {
         var data = PlayerDataManager.Instance;
@@ -51,12 +56,23 @@ public class ProfileUI : MonoBehaviour
         }
 
         // 🔹 BASIC INFO
-        nameText.text = "Name: " + data.playerName;
+        nameText.text = "Name: " + PlayerDataManager.Instance.playerName;
         rankText.text = "Rank: " + data.rank;
         levelText.text = "Level: " + data.level;
 
+        // 🔹 COINS (AAA LOGIC)
+        int newCoins = data.totalCoins;
+        coinsText.text = "Total Coins: " + newCoins;
+
+        if (lastCoins != -1 && newCoins > lastCoins)
+        {
+            PlayCoinPulse();
+            PlayCoinTextPunch();
+        }
+
+        lastCoins = newCoins;
+
         // 🔹 STATS
-        coinsText.text = "Total Coins: " + data.totalCoins;
         lastScoreText.text = "Last Score: " + data.lastScore;
         highScoreText.text = "High Score: " + data.highScore;
         playTimeText.text = "Play Time: " + FormatTime(data.totalPlayTime);
@@ -65,7 +81,6 @@ public class ProfileUI : MonoBehaviour
         float xpNeeded = data.GetXPForNextLevel(data.level);
         xpFill.fillAmount = Mathf.Clamp01(data.currentXP / xpNeeded);
 
-        // 🔹 RANK ICON
         UpdateRankIcon(data.rank);
     }
 
@@ -73,29 +88,75 @@ public class ProfileUI : MonoBehaviour
     {
         switch (rank)
         {
-            case "Beginner":
-                rankIcon.sprite = beginnerIcon;
-                break;
+            case "Beginner": rankIcon.sprite = beginnerIcon; break;
+            case "Rookie": rankIcon.sprite = rookieIcon; break;
+            case "Pro": rankIcon.sprite = proIcon; break;
+            case "Master": rankIcon.sprite = masterIcon; break;
+            case "Legend": rankIcon.sprite = legendIcon; break;
+            default: rankIcon.sprite = beginnerIcon; break;
+        }
+    }
 
-            case "Rookie":
-                rankIcon.sprite = rookieIcon;
-                break;
+    public void PlayCoinPulse()
+    {
+        if (pulseRoutine != null)
+            StopCoroutine(pulseRoutine);
 
-            case "Pro":
-                rankIcon.sprite = proIcon;
-                break;
+        pulseRoutine = StartCoroutine(PulseEffect());
+    }
 
-            case "Master":
-                rankIcon.sprite = masterIcon;
-                break;
+    public void PlayCoinTextPunch()
+    {
+        StartCoroutine(CoinPunch());
+    }
 
-            case "Legend":
-                rankIcon.sprite = legendIcon;
-                break;
+    IEnumerator CoinPunch()
+    {
+        coinsText.transform.localScale = Vector3.one;
 
-            default:
-                rankIcon.sprite = beginnerIcon;
-                break;
+        Vector3 original = Vector3.one;
+        Vector3 target = original * 1.15f;
+
+        float t = 0;
+
+        while (t < 0.1f)
+        {
+            t += Time.deltaTime;
+            coinsText.transform.localScale = Vector3.Lerp(original, target, t / 0.1f);
+            yield return null;
+        }
+
+        t = 0;
+
+        while (t < 0.1f)
+        {
+            t += Time.deltaTime;
+            coinsText.transform.localScale = Vector3.Lerp(target, original, t / 0.1f);
+            yield return null;
+        }
+    }
+
+    IEnumerator PulseEffect()
+    {
+        Vector3 original = panelRoot.localScale;
+        Vector3 target = original * 1.08f;
+
+        float t = 0;
+
+        while (t < 0.12f)
+        {
+            t += Time.deltaTime;
+            panelRoot.localScale = Vector3.Lerp(original, target, t / 0.12f);
+            yield return null;
+        }
+
+        t = 0;
+
+        while (t < 0.12f)
+        {
+            t += Time.deltaTime;
+            panelRoot.localScale = Vector3.Lerp(target, original, t / 0.12f);
+            yield return null;
         }
     }
 

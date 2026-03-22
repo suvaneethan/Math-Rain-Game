@@ -28,13 +28,14 @@ public class PlayerDataManager : MonoBehaviour
         }
     }
 
+
     public void SaveData()
     {
         PlayerPrefs.SetString("Name", playerName);
         PlayerPrefs.SetString("Rank", rank);
         PlayerPrefs.SetInt("Level", level);
 
-        PlayerPrefs.SetInt("Coins", totalCoins);
+        PlayerPrefs.SetInt("TotalCoins", totalCoins);
         PlayerPrefs.SetInt("LastScore", lastScore);
         PlayerPrefs.SetInt("HighScore", highScore);
         PlayerPrefs.SetFloat("PlayTime", totalPlayTime);
@@ -48,7 +49,7 @@ public class PlayerDataManager : MonoBehaviour
         rank = PlayerPrefs.GetString("Rank", "Beginner");
         level = PlayerPrefs.GetInt("Level", 1);
 
-        totalCoins = PlayerPrefs.GetInt("Coins", 0);
+        totalCoins = PlayerPrefs.GetInt("TotalCoins", 0);
         lastScore = PlayerPrefs.GetInt("LastScore", 0);
         highScore = PlayerPrefs.GetInt("HighScore", 0);
         totalPlayTime = PlayerPrefs.GetFloat("PlayTime", 0);
